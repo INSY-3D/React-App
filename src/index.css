@@ -1,0 +1,2 @@
+/* Reset only margins; let MUI handle the rest */
+body { margin: 0; }
