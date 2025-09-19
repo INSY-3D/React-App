@@ -4,6 +4,8 @@ export const allowList = {
   accountNumber: /^\d{6,18}$/,
   email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
   swift: /^[A-Za-z]{6}[A-Za-z0-9]{2}([A-Za-z0-9]{3})?$/, // BIC 8 or 11
+  // Staff validation (Task 2 Compliant)
+  staffId: /^[A-Z0-9-]{3,20}$/,
   // International payment validations
   iban: /^[A-Z]{2}\d{2}[A-Z0-9]{1,30}$/,
   sortCode: /^\d{6}$/,

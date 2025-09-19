@@ -66,9 +66,9 @@ export default function PaymentDetails({ data, onChange, onValidation }: Payment
     setErrors(newErrors)
     
     // Check overall validity
-    const isValid = Object.keys(newErrors).length === 0 && 
-                   data.amount && data.currency && data.reference && data.purpose
-    onValidation(isValid)
+    const isFormValid = Object.keys(newErrors).length === 0 && 
+                       !!data.amount && !!data.currency && !!data.reference && !!data.purpose
+    onValidation(isFormValid)
   }
 
   const handleChange = (field: string, value: string) => {

@@ -1,4 +1,4 @@
-import { Component, ReactNode } from 'react'
+import { Component, type ReactNode } from 'react'
 import { logClientError } from '../lib/logger'
 import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'

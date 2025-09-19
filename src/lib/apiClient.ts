@@ -27,14 +27,21 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const status = error?.response?.status
+    const url = error?.config?.url
+    
     if (status === 401 || status === 403) {
-      try {
-        // Attempt best-effort logout endpoint
-        await api.post('/api/v1/logout').catch(() => {})
-      } finally {
-        // Redirect to login or emit event
-        window.dispatchEvent(new CustomEvent('auth:logout'))
+      // Don't call logout if the failing request IS the logout endpoint (prevents infinite loop)
+      if (!url?.endsWith('/logout')) {
+        try {
+          // Attempt best-effort logout endpoint
+          await api.post('/api/v1/logout').catch(() => {})
+        } catch {
+          // Ignore logout failures
+        }
       }
+      
+      // Always emit logout event to clear local state
+      window.dispatchEvent(new CustomEvent('auth:logout'))
     }
     return Promise.reject(error)
   },
@@ -43,7 +50,7 @@ api.interceptors.response.use(
 api.interceptors.request.use((config) => {
   const token = getCsrfToken()
   if (token && config.method && ['post', 'put', 'patch', 'delete'].includes(config.method)) {
-    config.headers = { ...config.headers, 'X-CSRF-Token': token }
+    config.headers['X-CSRF-Token'] = token
   }
   return config
 })

@@ -1,4 +1,4 @@
-import Grid from '@mui/material/Grid'
+// import Grid from '@mui/material/Grid' // Using Box for layout instead
 import Paper from '@mui/material/Paper'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
@@ -45,8 +45,8 @@ export default function Dashboard() {
         <Typography variant="body2" color="text.secondary">Create payments, manage beneficiaries, and track statuses.</Typography>
       </Box>
 
-      <Grid container spacing={3} alignItems="stretch" justifyContent="center">
-        <Grid item xs={12} md={5}>
+      <Box display="flex" flexDirection={{ xs: 'column', md: 'row' }} gap={3} justifyContent="center">
+        <Box sx={{ flex: { xs: 1, md: '0 0 400px' }, maxWidth: { md: '400px' } }}>
           <Paper sx={{ p: 3, height: '100%' }}>
             <Typography variant="h6" fontWeight={700}>Create payment</Typography>
             <Divider sx={{ my: 2 }} />
@@ -70,8 +70,8 @@ export default function Dashboard() {
               </Box>
             </Stack>
           </Paper>
-        </Grid>
-        <Grid item xs={12} md={5}>
+        </Box>
+        <Box sx={{ flex: { xs: 1, md: '0 0 400px' }, maxWidth: { md: '400px' } }}>
           <Paper sx={{ p: 3, height: '100%' }}>
             <Typography variant="h6" fontWeight={700}>Add beneficiary</Typography>
             <Divider sx={{ my: 2 }} />
@@ -89,8 +89,8 @@ export default function Dashboard() {
               </Box>
             </Stack>
           </Paper>
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
 
       <Paper sx={{ p: 3 }}>
         <Typography variant="h6" fontWeight={700}>Payments</Typography>

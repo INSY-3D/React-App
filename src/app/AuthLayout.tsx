@@ -2,7 +2,7 @@ import Container from '@mui/material/Container'
 import Box from '@mui/material/Box'
 import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
-import { PropsWithChildren } from 'react'
+import { type PropsWithChildren } from 'react'
 
 export default function AuthLayout({ title = 'NexusPay', children }: PropsWithChildren<{ title?: string }>) {
   return (

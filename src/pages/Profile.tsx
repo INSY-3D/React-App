@@ -7,7 +7,7 @@ import LogoutIcon from '@mui/icons-material/Logout'
 import { useAppSelector, useAppDispatch } from '../store'
 import { logout } from '../store/authSlice'
 import { useNavigate } from 'react-router-dom'
-import api from '../lib/apiClient'
+import { performLogout } from '../lib/authCheck'
 
 export default function Profile() {
   const { user, isFirstLogin } = useAppSelector((state) => state.auth)
@@ -16,7 +16,8 @@ export default function Profile() {
 
   const handleLogout = async () => {
     try {
-      await api.post('/api/v1/logout')
+      // Clear HttpOnly cookies on server
+      await performLogout()
     } catch {
       // Continue with logout even if API call fails
     } finally {

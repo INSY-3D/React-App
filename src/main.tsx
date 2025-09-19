@@ -7,7 +7,7 @@ import { Provider as ReduxProvider } from 'react-redux'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { store } from './store'
 import queryClient from './lib/queryClient'
-import '@fontsource-variable/inter'
+// import '@fontsource-variable/inter' // Font will be loaded via CDN or system fonts
 import theme from './theme'
 import './index.css'
 import App from './App.tsx'
@@ -60,6 +60,6 @@ window.addEventListener('auth:logout', () => {
 })
 
 // Runtime anti-clickjacking fallback in dev where meta CSP frame-ancestors is ignored
-if (window.top !== window.self) {
-  window.top.location = window.self.location
+if (window.top !== window.self && window.top) {
+  window.top.location.href = window.self.location.href
 }

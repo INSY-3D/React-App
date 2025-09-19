@@ -1,4 +1,4 @@
-import { PropsWithChildren } from 'react'
+import { type PropsWithChildren } from 'react'
 import AppBar from '@mui/material/AppBar'
 import Toolbar from '@mui/material/Toolbar'
 import Typography from '@mui/material/Typography'
@@ -14,6 +14,8 @@ import PaymentsRoundedIcon from '@mui/icons-material/PaymentsRounded'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import Footer from './Footer'
 import npLogo from '../NPlogo.png'
+import SessionExpiryModal from '../components/SessionExpiryModal'
+import { useSessionManager } from '../hooks/useSessionManager'
 
 const navItems = [
   { label: 'Home', icon: <HomeRoundedIcon />, path: '/' },
@@ -29,6 +31,17 @@ export default function AppLayout({ children }: PropsWithChildren) {
     0,
     navItems.findIndex((i) => i.path === location.pathname),
   )
+
+  // Task 2 Compliant: Session management with 15-minute expiry
+  const {
+    showWarning,
+    sessionExpiresAt,
+    extendSession,
+    closeWarning
+  } = useSessionManager({
+    warningMinutes: 5,
+    sessionLengthMinutes: 15
+  })
 
   return (
     <Box sx={{ pb: { xs: 9, sm: 0 } }}>
@@ -56,6 +69,14 @@ export default function AppLayout({ children }: PropsWithChildren) {
           ))}
         </BottomNavigation>
       </Paper>
+
+      {/* Task 2 Compliant: Session expiry modal */}
+      <SessionExpiryModal
+        open={showWarning}
+        onClose={closeWarning}
+        expiresAt={sessionExpiresAt}
+        onExtend={extendSession}
+      />
     </Box>
   )
 }

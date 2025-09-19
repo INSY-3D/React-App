@@ -47,6 +47,9 @@ export default function PaymentWizard() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isComplete, setIsComplete] = useState(false)
   const [stepValidation, setStepValidation] = useState<boolean[]>([false, false, false])
+  const [paymentId, setPaymentId] = useState<string | null>(null) // Track created payment ID
+  const [isCreatingDraft, setIsCreatingDraft] = useState(false)
+  const [isUpdatingBeneficiary, setIsUpdatingBeneficiary] = useState(false)
   const { notify } = useNotifications()
 
   const [paymentData, setPaymentData] = useState<PaymentData>({
@@ -83,8 +86,14 @@ export default function PaymentWizard() {
     setPaymentData(prev => ({ ...prev, beneficiaryDetails: data }))
   }
 
-  const handleNext = () => {
-    if (activeStep < steps.length - 1) {
+  const handleNext = async () => {
+    if (activeStep === 0) {
+      // Step 1 → 2: Create DRAFT payment
+      await createDraftPayment()
+    } else if (activeStep === 1) {
+      // Step 2 → 3: Update beneficiary details
+      await updateBeneficiaryDetails()
+    } else if (activeStep < steps.length - 1) {
       setActiveStep(prev => prev + 1)
     }
   }
@@ -95,15 +104,83 @@ export default function PaymentWizard() {
     }
   }
 
+  // Task 2 Compliant: Step 1 - Create DRAFT payment
+  const createDraftPayment = async () => {
+    setIsCreatingDraft(true)
+    try {
+      const response = await api.post('/api/v1/payments', {
+        amount: paymentData.paymentDetails.amount,
+        currency: paymentData.paymentDetails.currency,
+        provider: 'SWIFT',
+        idempotencyKey: `payment-${Date.now()}-${Math.random().toString(36).substring(2)}`
+      })
+      
+      const createdPaymentId = response.data.paymentId || response.data.data?.id
+      setPaymentId(createdPaymentId)
+      setActiveStep(1)
+      
+      notify({ 
+        severity: 'success', 
+        message: 'Payment draft created successfully.' 
+      })
+    } catch (error: any) {
+      notify({ 
+        severity: 'error', 
+        message: error?.response?.data?.message || 'Failed to create payment draft. Please try again.' 
+      })
+    } finally {
+      setIsCreatingDraft(false)
+    }
+  }
+
+  // Task 2 Compliant: Step 2 - Update beneficiary details
+  const updateBeneficiaryDetails = async () => {
+    if (!paymentId) {
+      notify({ severity: 'error', message: 'Payment ID not found. Please start over.' })
+      return
+    }
+
+    setIsUpdatingBeneficiary(true)
+    try {
+      await api.put(`/api/v1/payments/${paymentId}/beneficiary`, {
+        beneficiaryName: paymentData.beneficiaryDetails.fullName,
+        beneficiaryAccountNumber: paymentData.beneficiaryDetails.accountNumber,
+        swiftBIC: paymentData.beneficiaryDetails.swiftCode,
+        beneficiaryIban: paymentData.beneficiaryDetails.iban,
+        beneficiaryAddress: paymentData.beneficiaryDetails.address,
+        beneficiaryCity: paymentData.beneficiaryDetails.city,
+        beneficiaryPostalCode: paymentData.beneficiaryDetails.postalCode,
+        beneficiaryCountry: paymentData.beneficiaryDetails.country
+      })
+      
+      setActiveStep(2)
+      
+      notify({ 
+        severity: 'success', 
+        message: 'Beneficiary details updated successfully.' 
+      })
+    } catch (error: any) {
+      notify({ 
+        severity: 'error', 
+        message: error?.response?.data?.message || 'Failed to update beneficiary details. Please try again.' 
+      })
+    } finally {
+      setIsUpdatingBeneficiary(false)
+    }
+  }
+
+  // Task 2 Compliant: Step 3 - Submit for verification
   const handleSubmit = async () => {
+    if (!paymentId) {
+      notify({ severity: 'error', message: 'Payment ID not found. Please start over.' })
+      return
+    }
+
     setIsSubmitting(true)
     try {
-      // Submit payment to API
-      await api.post('/api/v1/payments', {
-        ...paymentData.paymentDetails,
-        ...paymentData.beneficiaryDetails,
-        type: 'international',
-        status: 'pending_verification'
+      await api.post(`/api/v1/payments/${paymentId}/submit`, {
+        reference: paymentData.paymentDetails.reference,
+        purpose: paymentData.paymentDetails.purpose
       })
       
       setIsComplete(true)
@@ -159,7 +236,7 @@ export default function PaymentWizard() {
           Payment Submitted Successfully
         </Typography>
         <Typography color="text.secondary" gutterBottom>
-          Your international payment has been submitted and is now pending verification by our compliance team.
+          Your international payment {paymentId && `(${paymentId})`} has been submitted and is now pending verification by our compliance team.
         </Typography>
         <Alert severity="info" sx={{ mt: 3, textAlign: 'left' }}>
           <Typography variant="subtitle2" fontWeight={600}>Next Steps:</Typography>
@@ -217,11 +294,23 @@ export default function PaymentWizard() {
           {activeStep < steps.length - 1 ? (
             <Button
               onClick={handleNext}
-              disabled={!stepValidation[activeStep]}
-              endIcon={<ArrowForwardIcon />}
+              disabled={
+                !stepValidation[activeStep] || 
+                isCreatingDraft || 
+                isUpdatingBeneficiary
+              }
+              endIcon={
+                (activeStep === 0 && isCreatingDraft) || 
+                (activeStep === 1 && isUpdatingBeneficiary) ? 
+                <CircularProgress size={20} /> : 
+                <ArrowForwardIcon />
+              }
               variant="contained"
             >
-              Next
+              {activeStep === 0 && isCreatingDraft ? 'Creating Draft...' :
+               activeStep === 1 && isUpdatingBeneficiary ? 'Updating Details...' :
+               activeStep === 0 ? 'Create Payment Draft' :
+               activeStep === 1 ? 'Update Beneficiary' : 'Next'}
             </Button>
           ) : (
             <Button
@@ -231,7 +320,7 @@ export default function PaymentWizard() {
               variant="contained"
               color="primary"
             >
-              {isSubmitting ? 'Submitting...' : 'Submit Payment'}
+              {isSubmitting ? 'Submitting...' : 'Submit for Verification'}
             </Button>
           )}
         </Box>
