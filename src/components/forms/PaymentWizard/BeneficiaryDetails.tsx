@@ -1,20 +1,25 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import MenuItem from '@mui/material/MenuItem'
 import Alert from '@mui/material/Alert'
 import Divider from '@mui/material/Divider'
-import { 
-  validateSWIFTCode, 
-  validateIBAN, 
-  validateAllowList, 
+import Radio from '@mui/material/Radio'
+import RadioGroup from '@mui/material/RadioGroup'
+import FormControlLabel from '@mui/material/FormControlLabel'
+import {
+  validateSWIFTCode,
+  validateIBAN,
+  validateAllowList,
   allowList,
   formatSWIFT,
   formatIBAN,
   swiftCountries,
   validateCountryCode
 } from '../../../lib/validation'
+import { useQuery } from '@tanstack/react-query'
+import api from '../../../lib/apiClient'
 
 interface BeneficiaryDetailsProps {
   data: {
@@ -32,101 +37,125 @@ interface BeneficiaryDetailsProps {
   onValidation: (isValid: boolean) => void
 }
 
+interface SavedBeneficiary {
+  id: string
+  fullName: string
+  bankName: string
+  accountNumberMasked: string
+  swiftCode: string
+}
+
+type Mode = 'saved' | 'new' | 'oneTime'
+
 export default function BeneficiaryDetails({ data, onChange, onValidation }: BeneficiaryDetailsProps) {
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [mode, setMode] = useState<Mode>('saved')
+  const [selectedId, setSelectedId] = useState<string>('')
+
+  const { data: savedList = [] } = useQuery<SavedBeneficiary[]>({
+    queryKey: ['beneficiaries'],
+    queryFn: async () => {
+      const res = await api.get('/api/v1/beneficiaries')
+      return (res.data as Array<{ id: string; fullName: string; bankName: string; accountNumberMasked: string; swiftCode: string }>).
+        map(b => ({ id: b.id, fullName: b.fullName, bankName: b.bankName, accountNumber: b.accountNumberMasked, swiftCode: b.swiftCode }))
+    }
+  })
+
+  const inputsReadOnly = mode === 'saved' && !!selectedId
+  const readOnlyIdentity = inputsReadOnly
 
   const validateField = (field: string, value: string) => {
     const newErrors = { ...errors }
-    
     switch (field) {
       case 'fullName':
-        if (!validateAllowList(value, allowList.fullName)) {
-          newErrors.fullName = 'Please enter a valid full name (2+ characters, letters only)'
-        } else {
-          delete newErrors.fullName
-        }
+        if (!validateAllowList(value, allowList.fullName)) newErrors.fullName = 'Please enter a valid full name (2+ characters, letters only)'; else delete newErrors.fullName
         break
       case 'bankName':
-        if (!value.trim() || value.length < 2) {
-          newErrors.bankName = 'Bank name is required (minimum 2 characters)'
-        } else {
-          delete newErrors.bankName
-        }
+        if (!value.trim() || value.length < 2) newErrors.bankName = 'Bank name is required (minimum 2 characters)'; else delete newErrors.bankName
         break
       case 'swiftCode':
-        if (!validateSWIFTCode(value)) {
-          newErrors.swiftCode = 'Invalid SWIFT/BIC code (8 or 11 characters, e.g., ABCDUS33)'
-        } else {
-          delete newErrors.swiftCode
-        }
+        if (!validateSWIFTCode(value)) newErrors.swiftCode = 'Invalid SWIFT/BIC code (8 or 11 characters)'; else delete newErrors.swiftCode
         break
       case 'accountNumber':
-        if (!validateAllowList(value, allowList.accountNumber)) {
-          newErrors.accountNumber = 'Invalid account number (6-18 digits)'
-        } else {
-          delete newErrors.accountNumber
-        }
+        if (!validateAllowList(value, allowList.accountNumber)) newErrors.accountNumber = 'Invalid account number (6-18 digits)'; else delete newErrors.accountNumber
         break
       case 'iban':
-        if (value && !validateIBAN(value)) {
-          newErrors.iban = 'Invalid IBAN format or checksum'
-        } else {
-          delete newErrors.iban
-        }
+        if (value && !validateIBAN(value)) newErrors.iban = 'Invalid IBAN format or checksum'; else delete newErrors.iban
         break
       case 'address':
-        if (!validateAllowList(value, allowList.address)) {
-          newErrors.address = 'Invalid address format (1-70 characters)'
-        } else {
-          delete newErrors.address
-        }
+        if (!validateAllowList(value, allowList.address)) newErrors.address = 'Invalid address format (1-70 characters)'; else delete newErrors.address
         break
       case 'city':
-        if (!validateAllowList(value, allowList.city)) {
-          newErrors.city = 'Invalid city name (1-35 characters, letters only)'
-        } else {
-          delete newErrors.city
-        }
+        if (!validateAllowList(value, allowList.city)) newErrors.city = 'Invalid city name (1-35 characters, letters only)'; else delete newErrors.city
         break
       case 'postalCode':
-        if (!validateAllowList(value, allowList.postalCode)) {
-          newErrors.postalCode = 'Invalid postal code (1-16 characters)'
-        } else {
-          delete newErrors.postalCode
-        }
+        if (!validateAllowList(value, allowList.postalCode)) newErrors.postalCode = 'Invalid postal code (1-16 characters)'; else delete newErrors.postalCode
         break
       case 'country':
-        if (!validateCountryCode(value)) {
-          newErrors.country = 'Please select a supported country'
-        } else {
-          delete newErrors.country
-        }
+        if (!validateCountryCode(value)) newErrors.country = 'Please select a supported country'; else delete newErrors.country
         break
     }
-    
     setErrors(newErrors)
-    
-    // Check overall validity
+
     const requiredFields = ['fullName', 'bankName', 'swiftCode', 'accountNumber', 'address', 'city', 'postalCode', 'country']
-    const hasAllRequired = requiredFields.every(field => data[field as keyof typeof data]?.trim())
-    const isValid = Object.keys(newErrors).length === 0 && hasAllRequired
+    const hasAllRequired = requiredFields.every(field => (data[field as keyof typeof data] || '').toString().trim())
+
+    // If using saved beneficiary and selected, require address fields to proceed
+    const addressFields = ['address','city','postalCode','country']
+    const hasAllAddress = addressFields.every(field => (data[field as keyof typeof data] || '').toString().trim())
+    const isValid = (mode === 'saved' && !!selectedId) ? hasAllAddress && Object.keys(newErrors).length === 0 : (Object.keys(newErrors).length === 0 && hasAllRequired)
     onValidation(isValid)
   }
 
   const handleChange = (field: string, value: string) => {
     let processedValue = value
-    
-    // Auto-format certain fields
-    if (field === 'swiftCode') {
-      processedValue = formatSWIFT(value)
-    } else if (field === 'iban') {
-      processedValue = formatIBAN(value)
-    }
-    
+    if (field === 'swiftCode') processedValue = formatSWIFT(value)
+    else if (field === 'iban') processedValue = formatIBAN(value)
+
     const newData = { ...data, [field]: processedValue }
     onChange(newData)
     validateField(field, processedValue)
   }
+
+  const handleModeChange = (newMode: Mode) => {
+    setMode(newMode)
+    if (newMode !== 'saved') {
+      setSelectedId('')
+      onValidation(false)
+    } else {
+      onValidation(!!selectedId)
+    }
+  }
+
+  const handleSelectSaved = (id: string) => {
+    setSelectedId(id)
+    const selected = savedList.find(b => b.id === id)
+    if (selected) {
+      const newData = {
+        ...data,
+        fullName: selected.fullName,
+        bankName: selected.bankName,
+        swiftCode: selected.swiftCode,
+        // Do not prefill masked account number; require user to confirm/enter
+        accountNumber: '',
+      }
+      onChange(newData)
+      onValidation(false)
+      setErrors({})
+    } else {
+      onValidation(false)
+    }
+  }
+
+  const showSavedSelector = useMemo(() => mode === 'saved', [mode])
+
+  useEffect(() => {
+    // Re-validate on data changes for non-saved modes
+    if (!(mode === 'saved' && selectedId)) {
+      ;['fullName','bankName','swiftCode','accountNumber','iban','address','city','postalCode','country'].forEach(k => validateField(k, (data as any)[k] || ''))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <Stack spacing={3}>
@@ -135,13 +164,38 @@ export default function BeneficiaryDetails({ data, onChange, onValidation }: Ben
         Enter the recipient's bank and personal information for the international transfer.
       </Typography>
 
+      <RadioGroup row value={mode} onChange={(e) => handleModeChange(e.target.value as Mode)}>
+        <FormControlLabel value="saved" control={<Radio />} label="Use saved beneficiary" />
+        <FormControlLabel value="new" control={<Radio />} label="Add new beneficiary" />
+        <FormControlLabel value="oneTime" control={<Radio />} label="One-time beneficiary" />
+      </RadioGroup>
+
+      {showSavedSelector && (
+        <>
+          <TextField
+            select
+            label="Saved beneficiaries"
+            value={selectedId}
+            onChange={(e) => handleSelectSaved(e.target.value)}
+            helperText={savedList.length ? 'Select a saved beneficiary to auto-fill details' : 'You have no saved beneficiaries yet'}
+            fullWidth
+          >
+            {savedList.map((b) => (
+              <MenuItem key={b.id} value={b.id}>{b.fullName} • {b.bankName} • {b.swiftCode}</MenuItem>
+            ))}
+          </TextField>
+          {selectedId && (
+            <Alert severity="info">Using saved beneficiary. You can review details below; some fields are read-only.</Alert>
+          )}
+        </>
+      )}
+
       <Alert severity="warning">
         Ensure all details are accurate. Incorrect information may cause delays or additional fees.
       </Alert>
 
       <Stack spacing={2}>
         <Typography variant="subtitle2" fontWeight={600}>Beneficiary Information</Typography>
-        
         <TextField
           label="Beneficiary Full Name"
           value={data.fullName}
@@ -150,12 +204,12 @@ export default function BeneficiaryDetails({ data, onChange, onValidation }: Ben
           helperText={errors.fullName || 'Full name as it appears on the bank account'}
           required
           fullWidth
+          InputProps={{ readOnly: readOnlyIdentity }}
         />
 
         <Divider />
-        
+
         <Typography variant="subtitle2" fontWeight={600}>Bank Information</Typography>
-        
         <TextField
           label="Bank Name"
           value={data.bankName}
@@ -164,6 +218,7 @@ export default function BeneficiaryDetails({ data, onChange, onValidation }: Ben
           helperText={errors.bankName || 'Full name of the beneficiary bank'}
           required
           fullWidth
+          InputProps={{ readOnly: readOnlyIdentity }}
         />
 
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
@@ -176,14 +231,14 @@ export default function BeneficiaryDetails({ data, onChange, onValidation }: Ben
             inputProps={{ style: { textTransform: 'uppercase' } }}
             required
             fullWidth
+            InputProps={{ readOnly: readOnlyIdentity }}
           />
-          
           <TextField
             label="Account Number"
             value={data.accountNumber}
             onChange={(e) => handleChange('accountNumber', e.target.value)}
             error={!!errors.accountNumber}
-            helperText={errors.accountNumber}
+            helperText={errors.accountNumber || (inputsReadOnly ? 'Enter the beneficiary account number' : '')}
             inputProps={{ inputMode: 'numeric' }}
             required
             fullWidth
@@ -201,9 +256,7 @@ export default function BeneficiaryDetails({ data, onChange, onValidation }: Ben
         />
 
         <Divider />
-        
         <Typography variant="subtitle2" fontWeight={600}>Bank Address</Typography>
-
         <TextField
           label="Bank Address"
           value={data.address}
@@ -224,7 +277,6 @@ export default function BeneficiaryDetails({ data, onChange, onValidation }: Ben
             required
             fullWidth
           />
-          
           <TextField
             label="Postal Code"
             value={data.postalCode}

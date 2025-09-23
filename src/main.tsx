@@ -13,9 +13,11 @@ import './index.css'
 import App from './App.tsx'
 import ErrorBoundary from './components/ErrorBoundary'
 import NotificationsProvider from './components/NotificationsProvider'
-import api from './lib/apiClient'
+import api, { initializeAuthTokenFromStorage } from './lib/apiClient'
 import { setCsrfToken } from './lib/csrf'
 import { logout } from './store/authSlice'
+
+initializeAuthTokenFromStorage()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -54,9 +56,7 @@ createRoot(document.getElementById('root')!).render(
 
 window.addEventListener('auth:logout', () => {
   store.dispatch(logout())
-  if (location.pathname !== '/login') {
-    location.replace('/session-timeout')
-  }
+  // Redirect disabled temporarily during JWT wiring phase
 })
 
 // Runtime anti-clickjacking fallback in dev where meta CSP frame-ancestors is ignored

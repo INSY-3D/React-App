@@ -13,6 +13,7 @@ import StaffPortal from './pages/staff/StaffPortal'
 import NewPayment from './pages/payments/NewPayment'
 import PaymentDetail from './pages/payments/PaymentDetail'
 import { Error404, SessionTimeout } from './pages/errors/Errors'
+import Beneficiaries from './pages/Beneficiaries'
 
 export default function App() {
   return (
@@ -31,6 +32,7 @@ export default function App() {
           <Route path="/payments" element={<Payments />} />
           <Route path="/payments/new" element={<NewPayment />} />
           <Route path="/payments/:id" element={<PaymentDetail />} />
+          <Route path="/beneficiaries" element={<Beneficiaries />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/staff" element={<StaffPortal />} />
         </Route>

@@ -46,6 +46,23 @@ export const theme = createTheme({
   },
   shape: { borderRadius: 12 },
   components: {
+    MuiTextField: {
+      defaultProps: {
+        InputLabelProps: { shrink: true },
+        variant: 'outlined',
+      },
+    },
+    MuiOutlinedInput: {
+      styleOverrides: {
+        input: {
+          '&:-webkit-autofill': {
+            WebkitBoxShadow: '0 0 0 100px var(--mui-palette-background-paper) inset',
+            WebkitTextFillColor: 'inherit',
+            transition: 'background-color 9999s ease-out 0s',
+          },
+        },
+      },
+    },
     MuiButton: {
       defaultProps: { disableElevation: true },
       styleOverrides: {

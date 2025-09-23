@@ -86,16 +86,24 @@ export default function Login() {
         setMfaRequired(true)
       } else {
         // Determine if this is a first login (account created today)
-        const createdAt = new Date(res.data?.user?.createdAt)
+        const userPayload = (res.data?.user ?? res.data?.User) as any
+        const createdAt = new Date(userPayload?.createdAt ?? userPayload?.CreatedAt)
         const now = new Date()
         const isFirstLogin = createdAt.toDateString() === now.toDateString()
 
+        ;(window as any).__nexuspay_isAuthed = true
+        const accessToken: string | undefined = res.data?.accessToken ?? res.data?.AccessToken
+        const refreshToken: string | undefined = res.data?.refreshToken ?? res.data?.RefreshToken
+        if (accessToken) {
+          const { setAuthToken } = await import('../../lib/apiClient')
+          setAuthToken(accessToken)
+        }
         dispatch(loginSuccess({ 
-          user: res.data?.user,
+          user: userPayload,
           isFirstLogin 
         }))
         
-        if (res.data?.unknownDevice) {
+        if (res.data?.unknownDevice ?? res.data?.UnknownDevice) {
           notify({ severity: 'warning', message: 'Login from unknown device detected' })
         }
       }

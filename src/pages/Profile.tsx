@@ -8,6 +8,11 @@ import { useAppSelector, useAppDispatch } from '../store'
 import { logout } from '../store/authSlice'
 import { useNavigate } from 'react-router-dom'
 import { performLogout } from '../lib/authCheck'
+import Divider from '@mui/material/Divider'
+import TextField from '@mui/material/TextField'
+import MenuItem from '@mui/material/MenuItem'
+import { supportedCurrencies } from '../lib/validation'
+import { useEffect, useState } from 'react'
 
 export default function Profile() {
   const { user, isFirstLogin } = useAppSelector((state) => state.auth)
@@ -16,10 +21,8 @@ export default function Profile() {
 
   const handleLogout = async () => {
     try {
-      // Clear HttpOnly cookies on server
       await performLogout()
     } catch {
-      // Continue with logout even if API call fails
     } finally {
       dispatch(logout())
       navigate('/login', { replace: true })
@@ -30,6 +33,26 @@ export default function Profile() {
   const initials = user?.fullName
     ? user.fullName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
     : 'NP'
+
+  // Preferred currency (persisted locally for now)
+  const THEME_CCY_KEY = 'np_currency'
+  const [currency, setCurrency] = useState<string>('ZAR')
+  const [saved, setSaved] = useState<boolean>(false)
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(THEME_CCY_KEY)
+      if (stored) setCurrency(stored)
+    } catch {}
+  }, [])
+
+  const saveCurrency = () => {
+    try {
+      localStorage.setItem(THEME_CCY_KEY, currency)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 1500)
+    } catch {}
+  }
 
   return (
     <Stack spacing={3}>
@@ -72,17 +95,34 @@ export default function Profile() {
           Settings and Preferences
         </Typography>
         <Typography color="text.secondary" paragraph>
-          Manage your account settings, notifications, and security preferences.
+          Manage your account settings, preferred currency and logout.
         </Typography>
-        
-        {/* Only show logout button if NOT first login */}
+
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }}>
+          <TextField
+            select
+            label="Preferred Currency"
+            value={currency}
+            onChange={(e) => setCurrency(e.target.value)}
+            helperText="Displayed on dashboard totals"
+            sx={{ minWidth: 220 }}
+          >
+            {supportedCurrencies.map(ccy => (
+              <MenuItem key={ccy} value={ccy}>{ccy}</MenuItem>
+            ))}
+          </TextField>
+          <Button variant="contained" onClick={saveCurrency}>Save</Button>
+          {saved && <Typography color="success.main">Saved</Typography>}
+        </Stack>
+
+        <Divider sx={{ my: 2 }} />
         {!isFirstLogin && (
           <Button
             variant="outlined"
             color="error"
             startIcon={<LogoutIcon />}
             onClick={handleLogout}
-            sx={{ mt: 2 }}
+            sx={{ mt: 1 }}
           >
             Logout
           </Button>

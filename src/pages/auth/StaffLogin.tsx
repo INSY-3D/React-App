@@ -105,6 +105,14 @@ export default function StaffLogin() {
           message: 'Please enter your authenticator code to complete login' 
         })
       } else {
+        // Set bearer token for subsequent staff API calls
+        const accessToken: string | undefined = res.data?.accessToken ?? res.data?.AccessToken
+        if (accessToken) {
+          const { setAuthToken } = await import('../../lib/apiClient')
+          ;(window as any).__nexuspay_isAuthed = true
+          setAuthToken(accessToken)
+        }
+        
         // Staff users are never "first login"
         dispatch(loginSuccess({ 
           user: res.data?.user,

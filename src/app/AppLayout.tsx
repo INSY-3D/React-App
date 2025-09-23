@@ -1,4 +1,4 @@
-import { type PropsWithChildren } from 'react'
+import { type PropsWithChildren, useEffect, useState } from 'react'
 import AppBar from '@mui/material/AppBar'
 import Toolbar from '@mui/material/Toolbar'
 import Typography from '@mui/material/Typography'
@@ -11,37 +11,53 @@ import CreditCardIcon from '@mui/icons-material/CreditCard'
 import HomeRoundedIcon from '@mui/icons-material/HomeRounded'
 import AccountCircleRoundedIcon from '@mui/icons-material/AccountCircleRounded'
 import PaymentsRoundedIcon from '@mui/icons-material/PaymentsRounded'
-import { Outlet, useLocation, useNavigate } from 'react-router-dom'
+import GroupsRoundedIcon from '@mui/icons-material/GroupsRounded'
+import IconButton from '@mui/material/IconButton'
+import Tooltip from '@mui/material/Tooltip'
+import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded'
+import DarkModeRoundedIcon from '@mui/icons-material/DarkModeRounded'
+import LightModeRoundedIcon from '@mui/icons-material/LightModeRounded'
+import { Outlet, useLocation, useNavigate, Link as RouterLink } from 'react-router-dom'
 import Footer from './Footer'
 import npLogo from '../NPlogo.png'
-import SessionExpiryModal from '../components/SessionExpiryModal'
-import { useSessionManager } from '../hooks/useSessionManager'
+import { useAppDispatch } from '../store'
+import { logout } from '../store/authSlice'
+import { performLogout } from '../lib/authCheck'
 
 const navItems = [
   { label: 'Home', icon: <HomeRoundedIcon />, path: '/' },
   { label: 'Cards', icon: <CreditCardIcon />, path: '/cards' },
   { label: 'Pay', icon: <PaymentsRoundedIcon />, path: '/payments' },
+  { label: 'Beneficiaries', icon: <GroupsRoundedIcon />, path: '/beneficiaries' },
   { label: 'Profile', icon: <AccountCircleRoundedIcon />, path: '/profile' },
 ]
 
 export default function AppLayout({ children }: PropsWithChildren) {
   const location = useLocation()
   const navigate = useNavigate()
+  const dispatch = useAppDispatch()
   const currentIndex = Math.max(
     0,
     navItems.findIndex((i) => i.path === location.pathname),
   )
 
-  // Task 2 Compliant: Session management with 15-minute expiry
-  const {
-    showWarning,
-    sessionExpiresAt,
-    extendSession,
-    closeWarning
-  } = useSessionManager({
-    warningMinutes: 5,
-    sessionLengthMinutes: 15
+  const THEME_KEY = 'np_theme'
+  const [dark, setDark] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(THEME_KEY) === 'dark'
+    } catch { return false }
   })
+
+  useEffect(() => {
+    try { localStorage.setItem(THEME_KEY, dark ? 'dark' : 'light') } catch {}
+    document.documentElement.setAttribute('data-color-scheme', dark ? 'dark' : 'light')
+  }, [dark])
+
+  const handleLogout = async () => {
+    try { await performLogout() } catch {}
+    dispatch(logout())
+    navigate('/login')
+  }
 
   return (
     <Box sx={{ pb: { xs: 9, sm: 0 } }}>
@@ -50,6 +66,23 @@ export default function AppLayout({ children }: PropsWithChildren) {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexGrow: 1 }}>
             <img src={npLogo} alt="NexusPay" style={{ height: 28, width: 28, borderRadius: 6 }} />
             <Typography variant="h6" fontWeight={700}>NexusPay</Typography>
+          </Box>
+          <Box sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center', gap: 0.5 }}>
+            <Tooltip title={dark ? 'Switch to light mode' : 'Switch to dark mode'}>
+              <IconButton color="inherit" onClick={() => setDark((v) => !v)}>
+                {dark ? <LightModeRoundedIcon /> : <DarkModeRoundedIcon />}
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Profile">
+              <IconButton color="inherit" component={RouterLink} to="/profile">
+                <AccountCircleRoundedIcon />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Logout">
+              <IconButton color="inherit" onClick={handleLogout}>
+                <LogoutRoundedIcon />
+              </IconButton>
+            </Tooltip>
           </Box>
         </Toolbar>
       </AppBar>
@@ -69,14 +102,6 @@ export default function AppLayout({ children }: PropsWithChildren) {
           ))}
         </BottomNavigation>
       </Paper>
-
-      {/* Task 2 Compliant: Session expiry modal */}
-      <SessionExpiryModal
-        open={showWarning}
-        onClose={closeWarning}
-        expiresAt={sessionExpiresAt}
-        onExtend={extendSession}
-      />
     </Box>
   )
 }

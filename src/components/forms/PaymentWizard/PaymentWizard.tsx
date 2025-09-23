@@ -13,6 +13,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward'
 import SendIcon from '@mui/icons-material/Send'
+import { useNavigate } from 'react-router-dom'
 
 import PaymentDetails from './PaymentDetails'
 import BeneficiaryDetails from './BeneficiaryDetails'
@@ -43,6 +44,7 @@ interface PaymentData {
 }
 
 export default function PaymentWizard() {
+  const navigate = useNavigate()
   const [activeStep, setActiveStep] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isComplete, setIsComplete] = useState(false)
@@ -88,10 +90,8 @@ export default function PaymentWizard() {
 
   const handleNext = async () => {
     if (activeStep === 0) {
-      // Step 1 → 2: Create DRAFT payment
       await createDraftPayment()
     } else if (activeStep === 1) {
-      // Step 2 → 3: Update beneficiary details
       await updateBeneficiaryDetails()
     } else if (activeStep < steps.length - 1) {
       setActiveStep(prev => prev + 1)
@@ -114,20 +114,12 @@ export default function PaymentWizard() {
         provider: 'SWIFT',
         idempotencyKey: `payment-${Date.now()}-${Math.random().toString(36).substring(2)}`
       })
-      
       const createdPaymentId = response.data.paymentId || response.data.data?.id
       setPaymentId(createdPaymentId)
       setActiveStep(1)
-      
-      notify({ 
-        severity: 'success', 
-        message: 'Payment draft created successfully.' 
-      })
+      notify({ severity: 'success', message: 'Payment draft created successfully.' })
     } catch (error: any) {
-      notify({ 
-        severity: 'error', 
-        message: error?.response?.data?.message || 'Failed to create payment draft. Please try again.' 
-      })
+      notify({ severity: 'error', message: error?.response?.data?.message || 'Failed to create payment draft. Please try again.' })
     } finally {
       setIsCreatingDraft(false)
     }
@@ -139,7 +131,6 @@ export default function PaymentWizard() {
       notify({ severity: 'error', message: 'Payment ID not found. Please start over.' })
       return
     }
-
     setIsUpdatingBeneficiary(true)
     try {
       await api.put(`/api/v1/payments/${paymentId}/beneficiary`, {
@@ -152,18 +143,10 @@ export default function PaymentWizard() {
         beneficiaryPostalCode: paymentData.beneficiaryDetails.postalCode,
         beneficiaryCountry: paymentData.beneficiaryDetails.country
       })
-      
       setActiveStep(2)
-      
-      notify({ 
-        severity: 'success', 
-        message: 'Beneficiary details updated successfully.' 
-      })
+      notify({ severity: 'success', message: 'Beneficiary details updated successfully.' })
     } catch (error: any) {
-      notify({ 
-        severity: 'error', 
-        message: error?.response?.data?.message || 'Failed to update beneficiary details. Please try again.' 
-      })
+      notify({ severity: 'error', message: error?.response?.data?.message || 'Failed to update beneficiary details. Please try again.' })
     } finally {
       setIsUpdatingBeneficiary(false)
     }
@@ -175,24 +158,18 @@ export default function PaymentWizard() {
       notify({ severity: 'error', message: 'Payment ID not found. Please start over.' })
       return
     }
-
     setIsSubmitting(true)
     try {
       await api.post(`/api/v1/payments/${paymentId}/submit`, {
         reference: paymentData.paymentDetails.reference,
         purpose: paymentData.paymentDetails.purpose
       })
-      
       setIsComplete(true)
-      notify({ 
-        severity: 'success', 
-        message: 'Payment submitted successfully and is pending verification.' 
-      })
+      notify({ severity: 'success', message: 'Payment submitted successfully and is pending verification.' })
+      // Navigate back to payments after a short delay
+      setTimeout(() => navigate('/payments'), 600)
     } catch (error: any) {
-      notify({ 
-        severity: 'error', 
-        message: error?.response?.data?.message || 'Failed to submit payment. Please try again.' 
-      })
+      notify({ severity: 'error', message: error?.response?.data?.message || 'Failed to submit payment. Please try again.' })
     } finally {
       setIsSubmitting(false)
     }
@@ -248,7 +225,7 @@ export default function PaymentWizard() {
         </Alert>
         <Button 
           variant="contained" 
-          href="/payments" 
+          onClick={() => navigate('/payments')} 
           sx={{ mt: 3 }}
         >
           View Payments

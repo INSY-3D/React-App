@@ -3,7 +3,8 @@ export const allowList = {
   saId: /^\d{13}$/,
   accountNumber: /^\d{6,18}$/,
   email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-  swift: /^[A-Za-z]{6}[A-Za-z0-9]{2}([A-Za-z0-9]{3})?$/, // BIC 8 or 11
+  // Relaxed SWIFT/BIC: accept any 8 or 11 alphanumeric (bank/country specifics validated server-side)
+  swift: /^[A-Za-z0-9]{8}([A-Za-z0-9]{3})?$/,
   // Staff validation (Task 2 Compliant)
   staffId: /^[A-Z0-9-]{3,20}$/,
   // International payment validations
