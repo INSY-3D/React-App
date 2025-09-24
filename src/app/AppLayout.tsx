@@ -23,6 +23,7 @@ import npLogo from '../NPlogo.png'
 import { useAppDispatch } from '../store'
 import { logout } from '../store/authSlice'
 import { performLogout } from '../lib/authCheck'
+import { AnimatePresence, motion } from 'framer-motion'
 
 const navItems = [
   { label: 'Home', icon: <HomeRoundedIcon />, path: '/' },
@@ -59,6 +60,14 @@ export default function AppLayout({ children }: PropsWithChildren) {
     navigate('/login')
   }
 
+  const pageVariants = {
+    initial: { opacity: 0, y: 8, filter: 'blur(2px)' },
+    in: { opacity: 1, y: 0, filter: 'blur(0px)' },
+    out: { opacity: 0, y: -8, filter: 'blur(2px)' },
+  }
+
+  const pageTransition = { type: 'spring', stiffness: 260, damping: 24, mass: 0.8 }
+
   return (
     <Box sx={{ pb: { xs: 9, sm: 0 } }}>
       <AppBar position="sticky" color="transparent" enableColorOnDark>
@@ -86,7 +95,20 @@ export default function AppLayout({ children }: PropsWithChildren) {
           </Box>
         </Toolbar>
       </AppBar>
-      <Container maxWidth="lg" sx={{ py: 3 }}>{children ?? <Outlet />}</Container>
+      <Container maxWidth="lg" sx={{ py: 3 }}>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={location.pathname}
+            initial="initial"
+            animate="in"
+            exit="out"
+            variants={pageVariants}
+            transition={pageTransition}
+          >
+            {children ?? <Outlet />}
+          </motion.div>
+        </AnimatePresence>
+      </Container>
       <Footer />
       <Paper
         sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, display: { xs: 'block', sm: 'none' } }}
