@@ -10,7 +10,6 @@ export default function AuthLayout({ title = 'NexusPay', children }: PropsWithCh
       minHeight: '100vh',
       display: 'grid',
       placeItems: 'center',
-      background: 'linear-gradient(135deg, #3B82F6 0%, #34D399 100%)',
       px: 2,
     }}>
       <Container maxWidth="sm">

@@ -15,6 +15,7 @@ import DialogActions from '@mui/material/DialogActions'
 import Alert from '@mui/material/Alert'
 import LinearProgress from '@mui/material/LinearProgress'
 import Tooltip from '@mui/material/Tooltip'
+import Chip from '@mui/material/Chip'
 import { useState } from 'react'
 import { useNotifications } from '../../components/NotificationsProvider'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -39,9 +40,10 @@ interface StaffPayment {
   bankCountry?: string
   status: string
   createdAt: string
-  updatedAt: string
   customerName?: string
   customerEmail?: string
+  staffVerifiedAt?: string
+  submittedToSwiftAt?: string
 }
 
 export default function StaffPortal() {
@@ -57,8 +59,8 @@ export default function StaffPortal() {
   const { data: staffQueue, isLoading: isQueueLoading, error: queueError, refetch: refetchQueue } = useQuery({
     queryKey: ['staff-queue-dashboard'],
     queryFn: async () => {
-      const res = await api.get('/api/v1/payments/staff/queue', { params: { page: 1, limit: 50 } })
-      return res.data as { payments: StaffPayment[] }
+      const res = await api.get('/payments/staff/queue', { params: { page: 1, limit: 50 } })
+      return res.data.data as { payments: StaffPayment[] }
     },
     enabled: isStaff,
     refetchOnWindowFocus: false,
@@ -67,8 +69,18 @@ export default function StaffPortal() {
   const { data: verifiedQueue, isLoading: isVerifiedLoading, error: verifiedError, refetch: refetchVerified } = useQuery({
     queryKey: ['staff-verified-dashboard'],
     queryFn: async () => {
-      const res = await api.get('/api/v1/payments/staff/verified', { params: { page: 1, limit: 50 } })
-      return res.data as { payments: StaffPayment[] }
+      const res = await api.get('/payments/staff/verified', { params: { page: 1, limit: 50 } })
+      return res.data.data as { payments: StaffPayment[] }
+    },
+    enabled: isStaff,
+    refetchOnWindowFocus: false,
+  })
+
+  const { data: swiftQueue, isLoading: isSwiftLoading, error: swiftError, refetch: refetchSwift } = useQuery({
+    queryKey: ['staff-swift-dashboard'],
+    queryFn: async () => {
+      const res = await api.get('/payments/staff/swift', { params: { page: 1, limit: 50 } })
+      return res.data.data as { payments: StaffPayment[] }
     },
     enabled: isStaff,
     refetchOnWindowFocus: false,
@@ -76,16 +88,25 @@ export default function StaffPortal() {
 
   const verifyMutation = useMutation({
     mutationFn: async (payload: { id: string; action: 'approve' | 'reject' }) => {
-      await api.post(`/api/v1/payments/${payload.id}/verify`, { action: payload.action })
+      await api.post(`/payments/${payload.id}/verify`, { action: payload.action })
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['staff-queue'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['staff-queue-dashboard'] })
+      queryClient.invalidateQueries({ queryKey: ['staff-verified-dashboard'] })
+      queryClient.invalidateQueries({ queryKey: ['staff-swift-dashboard'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-payments'] })
+    }
   })
 
   const submitSwiftMutation = useMutation({
     mutationFn: async (id: string) => {
-      await api.post(`/api/v1/payments/${id}/submit-swift`)
+      await api.post(`/payments/${id}/submit-swift`)
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['staff-queue'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['staff-verified-dashboard'] })
+      queryClient.invalidateQueries({ queryKey: ['staff-swift-dashboard'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-payments'] })
+    }
   })
 
   const handle = (id: string, a: 'verify' | 'submit') => { setSelectedId(id); setAction(a); setOpen(true) }
@@ -118,98 +139,150 @@ export default function StaffPortal() {
   return (
     <Stack spacing={2}>
       <Typography variant="h5" fontWeight={700}>Staff Portal</Typography>
+
       <Paper sx={{ p: 2 }}>
-        <Typography fontWeight={700} gutterBottom>Pending Payments Queue</Typography>
+        <Typography fontWeight={700} gutterBottom>
+          Pending Payments Queue
+        </Typography>
         {isQueueLoading && <LinearProgress />}
-        {queueError && <Alert severity="error">Failed to load queue.</Alert>}
-        <TableContainer>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Ref</TableCell>
-                <TableCell>Customer</TableCell>
-                <TableCell>Beneficiary</TableCell>
-                <TableCell>Account</TableCell>
-                <TableCell>SWIFT</TableCell>
-                <TableCell>Amount</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {(staffQueue?.payments ?? []).length === 0 ? (
+        {queueError && <Alert severity="error">Failed to load pending payments.</Alert>}
+        {staffQueue && (
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
                 <TableRow>
-                  <TableCell colSpan={7} align="center">
-                    <Typography color="text.secondary">No pending payments.</Typography>
-                  </TableCell>
+                  <TableCell>Payment ID</TableCell>
+                  <TableCell>Customer</TableCell>
+                  <TableCell>Amount</TableCell>
+                  <TableCell>Beneficiary</TableCell>
+                  <TableCell>Account</TableCell>
+                  <TableCell>SWIFT/BIC</TableCell>
+                  <TableCell align="center">Actions</TableCell>
                 </TableRow>
-              ) : (
-                (staffQueue?.payments ?? []).map((p) => (
+              </TableHead>
+              <TableBody>
+                {!staffQueue?.payments || staffQueue.payments.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} align="center">No payments pending verification.</TableCell>
+                  </TableRow>
+                ) : staffQueue.payments.map((p) => (
                   <TableRow key={p.id} hover>
-                    <TableCell>{p.reference || p.id}</TableCell>
-                    <TableCell>
-                      <Tooltip title={p.customerEmail || ''}>
-                        <span>{p.customerName || '—'}</span>
-                      </Tooltip>
-                    </TableCell>
-                    <TableCell>{p.beneficiaryName || '—'}</TableCell>
-                    <TableCell>{p.accountNumber || '—'}</TableCell>
-                    <TableCell>{p.swiftCode || '—'}</TableCell>
-                    <TableCell>{new Intl.NumberFormat('en-ZA', { style: 'currency', currency: p.currency }).format(p.amount)}</TableCell>
-                    <TableCell>
-                      <Stack direction="row" spacing={1}>
-                        <Button size="small" variant="outlined" onClick={() => handle(p.id, 'verify')}>Verify</Button>
-                        <Button size="small" variant="contained" onClick={() => handle(p.id, 'submit')}>Submit to SWIFT</Button>
-                      </Stack>
+                    <TableCell>{p.id}</TableCell>
+                    <TableCell>{p.customerName || p.customerEmail || 'N/A'}</TableCell>
+                    <TableCell>{p.amount} {p.currency}</TableCell>
+                    <TableCell>{p.beneficiaryName || 'N/A'}</TableCell>
+                    <TableCell>{maskPII(p.accountNumber)}</TableCell>
+                    <TableCell>{p.swiftCode || 'N/A'}</TableCell>
+                    <TableCell align="center">
+                      <Button size="small" variant="contained" onClick={() => handle(p.id, 'verify')}>Verify</Button>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
       </Paper>
 
       <Paper sx={{ p: 2 }}>
-        <Typography fontWeight={700} gutterBottom>Verified Payments (ready for SWIFT)</Typography>
+        <Typography fontWeight={700} gutterBottom>
+          Verified Payments Ready for SWIFT
+        </Typography>
         {isVerifiedLoading && <LinearProgress />}
-        {verifiedError && <Alert severity="error">Failed to load verified list.</Alert>}
-        <TableContainer>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Ref</TableCell>
-                <TableCell>Beneficiary</TableCell>
-                <TableCell>SWIFT</TableCell>
-                <TableCell>Amount</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {(verifiedQueue?.payments ?? []).length === 0 ? (
+        {verifiedError && <Alert severity="error">Failed to load verified payments.</Alert>}
+        {verifiedQueue && (
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
                 <TableRow>
-                  <TableCell colSpan={5} align="center">No verified payments.</TableCell>
+                  <TableCell>Payment ID</TableCell>
+                  <TableCell>Customer</TableCell>
+                  <TableCell>Amount</TableCell>
+                  <TableCell>Beneficiary</TableCell>
+                  <TableCell>Account</TableCell>
+                  <TableCell>SWIFT/BIC</TableCell>
+                  <TableCell align="center">Actions</TableCell>
                 </TableRow>
-              ) : (
-                (verifiedQueue?.payments ?? []).map((p) => (
+              </TableHead>
+              <TableBody>
+                {!verifiedQueue?.payments || verifiedQueue.payments.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} align="center">No verified payments awaiting SWIFT submission.</TableCell>
+                  </TableRow>
+                ) : verifiedQueue.payments.map((p) => (
                   <TableRow key={p.id} hover>
-                    <TableCell>{p.reference || p.id}</TableCell>
-                    <TableCell>{p.beneficiaryName || '—'}</TableCell>
-                    <TableCell>{p.swiftCode || '—'}</TableCell>
-                    <TableCell>{new Intl.NumberFormat('en-ZA', { style: 'currency', currency: p.currency }).format(p.amount)}</TableCell>
-                    <TableCell>
+                    <TableCell>{p.id}</TableCell>
+                    <TableCell>{p.customerName || p.customerEmail || 'N/A'}</TableCell>
+                    <TableCell>{p.amount} {p.currency}</TableCell>
+                    <TableCell>{p.beneficiaryName || 'N/A'}</TableCell>
+                    <TableCell>{maskPII(p.accountNumber)}</TableCell>
+                    <TableCell>{p.swiftCode || 'N/A'}</TableCell>
+                    <TableCell align="center">
                       <Button size="small" variant="contained" onClick={() => handle(p.id, 'submit')}>Submit to SWIFT</Button>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
       </Paper>
+
+      {/* Completed/SWIFT Submitted Payments Section */}
+      <Paper sx={{ p: 2 }}>
+        <Typography fontWeight={700} gutterBottom>
+          Completed Payments (Submitted to SWIFT)
+        </Typography>
+        {isSwiftLoading && <LinearProgress />}
+        {swiftError && <Alert severity="error">Failed to load completed payments.</Alert>}
+        {swiftQueue && (
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Payment ID</TableCell>
+                  <TableCell>Customer</TableCell>
+                  <TableCell>Amount</TableCell>
+                  <TableCell>Beneficiary</TableCell>
+                  <TableCell>SWIFT/BIC</TableCell>
+                  <TableCell>Submitted Date</TableCell>
+                  <TableCell>Status</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {!swiftQueue?.payments || swiftQueue.payments.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} align="center">No completed payments.</TableCell>
+                  </TableRow>
+                ) : swiftQueue.payments.map((p) => (
+                  <TableRow key={p.id} hover>
+                    <TableCell>{p.id}</TableCell>
+                    <TableCell>{p.customerName || p.customerEmail || 'N/A'}</TableCell>
+                    <TableCell>{p.amount} {p.currency}</TableCell>
+                    <TableCell>{p.beneficiaryName || 'N/A'}</TableCell>
+                    <TableCell>{p.swiftCode || 'N/A'}</TableCell>
+                    <TableCell>
+                      {p.submittedToSwiftAt ? new Date(p.submittedToSwiftAt).toLocaleDateString() : 'N/A'}
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label="Submitted to SWIFT"
+                        color="primary"
+                        size="small"
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
+      </Paper>
+
       <Dialog open={open} onClose={() => setOpen(false)}>
         <DialogTitle>{action === 'verify' ? 'Verify Payment' : 'Submit to SWIFT'}</DialogTitle>
         <DialogContent>
-          <Typography>Confirm action for selected payment.</Typography>
+          Confirm you want to {action === 'verify' ? 'verify' : 'submit'} payment {selectedId}.
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpen(false)}>Cancel</Button>

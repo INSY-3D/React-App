@@ -75,25 +75,25 @@ export default function Login() {
     setError(null)
     
     try {
-      const res = await api.post('/api/v1/login', {
+      const res = await api.post('/auth/login', {
         usernameOrEmail: data.usernameOrEmail,
         accountNumber: data.accountNumber,
         password: data.password,
         otp: mfaRequired ? data.otp : undefined,
       })
       
-      if (res.data?.mfa === 'required') {
+      if (res.data?.data?.mfa === 'required') {
         setMfaRequired(true)
       } else {
         // Determine if this is a first login (account created today)
-        const userPayload = (res.data?.user ?? res.data?.User) as any
-        const createdAt = new Date(userPayload?.createdAt ?? userPayload?.CreatedAt)
+        const userPayload = res.data?.data?.user
+        const createdAt = new Date(userPayload?.createdAt)
         const now = new Date()
         const isFirstLogin = createdAt.toDateString() === now.toDateString()
 
         ;(window as any).__nexuspay_isAuthed = true
-        const accessToken: string | undefined = res.data?.accessToken ?? res.data?.AccessToken
-        const refreshToken: string | undefined = res.data?.refreshToken ?? res.data?.RefreshToken
+        const accessToken: string | undefined = res.data?.data?.accessToken
+        const refreshToken: string | undefined = res.data?.data?.refreshToken
         if (accessToken) {
           const { setAuthToken } = await import('../../lib/apiClient')
           setAuthToken(accessToken)
@@ -103,7 +103,7 @@ export default function Login() {
           isFirstLogin 
         }))
         
-        if (res.data?.unknownDevice ?? res.data?.UnknownDevice) {
+        if (res.data?.data?.unknownDevice) {
           notify({ severity: 'warning', message: 'Login from unknown device detected' })
         }
       }
@@ -117,8 +117,8 @@ export default function Login() {
 
   const handleDemoCredentials = () => {
     setValue('usernameOrEmail', 'test@nexuspay.dev', { shouldValidate: true, shouldDirty: true })
-    setValue('accountNumber', '1234567890', { shouldValidate: true, shouldDirty: true })
-    setValue('password', 'DevPassw0rd!2025', { shouldValidate: true, shouldDirty: true })
+    setValue('accountNumber', '12345678', { shouldValidate: true, shouldDirty: true })
+    setValue('password', 'TestPass123!', { shouldValidate: true, shouldDirty: true })
   }
 
   return (

@@ -72,8 +72,8 @@ export default function StaffLogin() {
 
   const handleDemoCredentials = () => {
     setValue('usernameOrEmail', 'staff@nexuspay.dev', { shouldValidate: true, shouldDirty: true })
-    setValue('staffId', 'STAFF-001', { shouldValidate: true, shouldDirty: true })
-    setValue('password', 'DevPassw0rd!2025', { shouldValidate: true, shouldDirty: true })
+    setValue('staffId', '87654321', { shouldValidate: true, shouldDirty: true })
+    setValue('password', 'StaffPass123!', { shouldValidate: true, shouldDirty: true })
   }
 
   const onSubmit = async (data: StaffLoginFormData) => {
@@ -91,7 +91,7 @@ export default function StaffLogin() {
     setError(null)
     
     try {
-      const res = await api.post('/api/v1/login', {
+      const res = await api.post('/auth/staff-login', {
         usernameOrEmail: data.usernameOrEmail,
         accountNumber: data.staffId, // Staff ID maps to account number for backend
         password: data.password,
@@ -106,7 +106,7 @@ export default function StaffLogin() {
         })
       } else {
         // Set bearer token for subsequent staff API calls
-        const accessToken: string | undefined = res.data?.accessToken ?? res.data?.AccessToken
+        const accessToken: string | undefined = res.data?.data?.accessToken ?? res.data?.accessToken
         if (accessToken) {
           const { setAuthToken } = await import('../../lib/apiClient')
           ;(window as any).__nexuspay_isAuthed = true
@@ -115,11 +115,11 @@ export default function StaffLogin() {
         
         // Staff users are never "first login"
         dispatch(loginSuccess({ 
-          user: res.data?.user,
+          user: res.data?.data?.user ?? res.data?.user,
           isFirstLogin: false
         }))
         
-        if (res.data?.unknownDevice) {
+        if (res.data?.data?.unknownDevice ?? res.data?.unknownDevice) {
           notify({ 
             severity: 'warning', 
             message: 'Staff login from unknown device detected - security event logged' 

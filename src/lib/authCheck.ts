@@ -42,7 +42,7 @@ export async function checkAuthStatus(): Promise<AuthCheckResponse> {
  */
 export async function performLogout(): Promise<void> {
   try {
-    await api.post('/api/v1/logout')
+    await api.post('/auth/logout')
   } catch (error) {
     // Even if logout fails, we still want to clear local state
     console.warn('Logout request failed:', error)

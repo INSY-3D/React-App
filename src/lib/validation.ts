@@ -1,7 +1,7 @@
 export const allowList = {
   fullName: /^[A-Za-z ,.'-]{2,}$/,
   saId: /^\d{13}$/,
-  accountNumber: /^\d{6,18}$/,
+  accountNumber: /^(\d{6,18}|\*{4,}\d{4})$/, // Allow digits or masked format (****1234)
   email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
   // Relaxed SWIFT/BIC: accept any 8 or 11 alphanumeric (bank/country specifics validated server-side)
   swift: /^[A-Za-z0-9]{8}([A-Za-z0-9]{3})?$/,
@@ -83,8 +83,27 @@ export const supportedCurrencies = [
 ] as const
 
 export const swiftCountries = [
-  'US', 'GB', 'DE', 'FR', 'IT', 'ES', 'NL', 'BE', 'CH', 'AT', 
-  'SE', 'DK', 'NO', 'FI', 'IE', 'PT', 'LU', 'JP', 'AU', 'CA', 'ZA'
+  { code: 'US', name: 'United States' },
+  { code: 'GB', name: 'United Kingdom' },
+  { code: 'DE', name: 'Germany' },
+  { code: 'FR', name: 'France' },
+  { code: 'IT', name: 'Italy' },
+  { code: 'ES', name: 'Spain' },
+  { code: 'NL', name: 'Netherlands' },
+  { code: 'BE', name: 'Belgium' },
+  { code: 'CH', name: 'Switzerland' },
+  { code: 'AT', name: 'Austria' },
+  { code: 'SE', name: 'Sweden' },
+  { code: 'DK', name: 'Denmark' },
+  { code: 'NO', name: 'Norway' },
+  { code: 'FI', name: 'Finland' },
+  { code: 'IE', name: 'Ireland' },
+  { code: 'PT', name: 'Portugal' },
+  { code: 'LU', name: 'Luxembourg' },
+  { code: 'JP', name: 'Japan' },
+  { code: 'AU', name: 'Australia' },
+  { code: 'CA', name: 'Canada' },
+  { code: 'ZA', name: 'South Africa' }
 ] as const
 
 export function validateCurrency(currency: string): boolean {
@@ -92,7 +111,25 @@ export function validateCurrency(currency: string): boolean {
 }
 
 export function validateCountryCode(countryCode: string): boolean {
-  return swiftCountries.includes(countryCode as any)
+  return swiftCountries.some(country => country.code === countryCode)
+}
+
+// Currency symbol mapping
+export const currencySymbols: Record<string, string> = {
+  'USD': '$',
+  'EUR': '€',
+  'GBP': '£',
+  'JPY': '¥',
+  'CAD': 'C$',
+  'AUD': 'A$',
+  'CHF': 'CHF',
+  'CNY': '¥',
+  'ZAR': 'R',
+  'SEK': 'kr'
+}
+
+export function getCurrencySymbol(currency: string): string {
+  return currencySymbols[currency] || currency
 }
 
 

@@ -20,6 +20,7 @@ import { Delete as DeleteIcon, Add as AddIcon } from '@mui/icons-material'
 import { allowList, validateAllowList, validateSWIFTCode } from '../lib/validation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../lib/apiClient'
+import { useAppSelector } from '../store'
 
 interface Beneficiary {
   id: string
@@ -31,11 +32,13 @@ interface Beneficiary {
 
 export default function Beneficiaries() {
   const queryClient = useQueryClient()
+  const { user } = useAppSelector((s) => s.auth)
+  const userKey = user?.id || user?.email || 'anon'
   const { data: items = [], isLoading } = useQuery({
-    queryKey: ['beneficiaries'],
+    queryKey: ['beneficiaries', userKey],
     queryFn: async () => {
-      const res = await api.get('/api/v1/beneficiaries')
-      return (res.data as Array<{ id: string; fullName: string; bankName: string; accountNumberMasked: string; swiftCode: string; createdAt: string }>)
+      const res = await api.get('/beneficiaries')
+      return (res.data.data as Array<{ id: string; fullName: string; bankName: string; accountNumberMasked: string; swiftCode: string; createdAt: string }>)
         .map(d => ({ id: d.id, fullName: d.fullName, bankName: d.bankName, accountNumber: d.accountNumberMasked, swiftCode: d.swiftCode })) as Beneficiary[]
     }
   })
@@ -47,16 +50,16 @@ export default function Beneficiaries() {
 
   const createMutation = useMutation({
     mutationFn: async (payload: { fullName: string; bankName: string; accountNumber: string; swiftCode: string }) => {
-      await api.post('/api/v1/beneficiaries', payload)
+      await api.post('/beneficiaries', payload)
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['beneficiaries'] })
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['beneficiaries', userKey] })
   })
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      await api.delete(`/api/v1/beneficiaries/${id}`)
+      await api.delete(`/beneficiaries/${id}`)
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['beneficiaries'] })
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['beneficiaries', userKey] })
   })
 
   // Normalized inputs for robust validation

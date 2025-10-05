@@ -26,6 +26,7 @@ import {
   Refresh as RefreshIcon
 } from '@mui/icons-material'
 import api from '../lib/apiClient'
+import { useAppSelector } from '../store'
 
 interface Payment {
   id: string
@@ -61,19 +62,21 @@ const statusConfig = {
 
 export default function Payments() {
   const navigate = useNavigate()
+  const { user } = useAppSelector((s) => s.auth)
+  const userKey = user?.id || user?.email || 'anon'
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['payments', page + 1, rowsPerPage],
+    queryKey: ['payments', userKey, page + 1, rowsPerPage],
     queryFn: async () => {
-      const response = await api.get('/api/v1/payments', {
+      const response = await api.get('/payments', {
         params: {
           page: page + 1,
           limit: rowsPerPage
         }
       })
-      return response.data as PaymentListResponse
+      return response.data.data as PaymentListResponse
     }
   })
 

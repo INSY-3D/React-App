@@ -55,8 +55,8 @@ export default function BeneficiaryDetails({ data, onChange, onValidation }: Ben
   const { data: savedList = [] } = useQuery<SavedBeneficiary[]>({
     queryKey: ['beneficiaries'],
     queryFn: async () => {
-      const res = await api.get('/api/v1/beneficiaries')
-      return (res.data as Array<{ id: string; fullName: string; bankName: string; accountNumberMasked: string; swiftCode: string }>).
+      const res = await api.get('/beneficiaries')
+      return (res.data.data as Array<{ id: string; fullName: string; bankName: string; accountNumberMasked: string; swiftCode: string }>).
         map(b => ({ id: b.id, fullName: b.fullName, bankName: b.bankName, accountNumber: b.accountNumberMasked, swiftCode: b.swiftCode }))
     }
   })
@@ -77,7 +77,14 @@ export default function BeneficiaryDetails({ data, onChange, onValidation }: Ben
         if (!validateSWIFTCode(value)) newErrors.swiftCode = 'Invalid SWIFT/BIC code (8 or 11 characters)'; else delete newErrors.swiftCode
         break
       case 'accountNumber':
-        if (!validateAllowList(value, allowList.accountNumber)) newErrors.accountNumber = 'Invalid account number (6-18 digits)'; else delete newErrors.accountNumber
+        // If using saved beneficiary, allow masked account numbers
+        if (mode === 'saved' && selectedId && value.includes('*')) {
+          delete newErrors.accountNumber
+        } else if (!validateAllowList(value, allowList.accountNumber)) {
+          newErrors.accountNumber = 'Invalid account number (6-18 digits)'
+        } else {
+          delete newErrors.accountNumber
+        }
         break
       case 'iban':
         if (value && !validateIBAN(value)) newErrors.iban = 'Invalid IBAN format or checksum'; else delete newErrors.iban
@@ -96,15 +103,67 @@ export default function BeneficiaryDetails({ data, onChange, onValidation }: Ben
         break
     }
     setErrors(newErrors)
+    validateForm(data, newErrors)
+  }
 
+  const validateForm = (formData: any, currentErrors: Record<string, string> = errors) => {
     const requiredFields = ['fullName', 'bankName', 'swiftCode', 'accountNumber', 'address', 'city', 'postalCode', 'country']
-    const hasAllRequired = requiredFields.every(field => (data[field as keyof typeof data] || '').toString().trim())
+    // For saved beneficiaries, accountNumber might be masked, so don't require it to be filled
+    const fieldsToCheck = (mode === 'saved' && selectedId && formData.accountNumber.includes('*')) 
+      ? requiredFields.filter(f => f !== 'accountNumber')
+      : requiredFields
+    const hasAllRequired = fieldsToCheck.every(field => (formData[field as keyof typeof formData] || '').toString().trim())
 
     // If using saved beneficiary and selected, require address fields to proceed
     const addressFields = ['address','city','postalCode','country']
-    const hasAllAddress = addressFields.every(field => (data[field as keyof typeof data] || '').toString().trim())
-    const isValid = (mode === 'saved' && !!selectedId) ? hasAllAddress && Object.keys(newErrors).length === 0 : (Object.keys(newErrors).length === 0 && hasAllRequired)
+    const hasAllAddress = addressFields.every(field => (formData[field as keyof typeof formData] || '').toString().trim())
+    const isValid = (mode === 'saved' && !!selectedId) ? hasAllAddress && Object.keys(currentErrors).length === 0 : (Object.keys(currentErrors).length === 0 && hasAllRequired)
     onValidation(isValid)
+  }
+
+  const validateAllFields = (formData: any) => {
+    const newErrors: Record<string, string> = {}
+    
+    // Validate all fields
+    Object.keys(formData).forEach(field => {
+      const value = formData[field] || ''
+      switch (field) {
+        case 'fullName':
+          if (!validateAllowList(value, allowList.fullName)) newErrors.fullName = 'Please enter a valid full name (2+ characters, letters only)'
+          break
+        case 'bankName':
+          if (!value.trim() || value.length < 2) newErrors.bankName = 'Bank name is required (minimum 2 characters)'
+          break
+        case 'swiftCode':
+          if (!validateSWIFTCode(value)) newErrors.swiftCode = 'Invalid SWIFT/BIC code (8 or 11 characters)'
+          break
+        case 'accountNumber':
+          if (mode === 'saved' && selectedId && value.includes('*')) {
+            // Allow masked account numbers for saved beneficiaries
+          } else if (!validateAllowList(value, allowList.accountNumber)) {
+            newErrors.accountNumber = 'Invalid account number (6-18 digits)'
+          }
+          break
+        case 'iban':
+          if (value && !validateIBAN(value)) newErrors.iban = 'Invalid IBAN format or checksum'
+          break
+        case 'address':
+          if (!validateAllowList(value, allowList.address)) newErrors.address = 'Invalid address format (1-70 characters)'
+          break
+        case 'city':
+          if (!validateAllowList(value, allowList.city)) newErrors.city = 'Invalid city name (1-35 characters, letters only)'
+          break
+        case 'postalCode':
+          if (!validateAllowList(value, allowList.postalCode)) newErrors.postalCode = 'Invalid postal code (1-16 characters)'
+          break
+        case 'country':
+          if (!validateCountryCode(value)) newErrors.country = 'Please select a supported country'
+          break
+      }
+    })
+    
+    setErrors(newErrors)
+    validateForm(formData, newErrors)
   }
 
   const handleChange = (field: string, value: string) => {
@@ -136,11 +195,16 @@ export default function BeneficiaryDetails({ data, onChange, onValidation }: Ben
         fullName: selected.fullName,
         bankName: selected.bankName,
         swiftCode: selected.swiftCode,
-        // Do not prefill masked account number; require user to confirm/enter
-        accountNumber: '',
+        // Use masked account number for display, but user needs to enter real one
+        accountNumber: selected.accountNumber, // This is the masked version
+        // Clear IBAN since it's not stored in saved beneficiaries
+        iban: '',
       }
       onChange(newData)
-      onValidation(false)
+      // Trigger validation after a short delay to allow state to update
+      setTimeout(() => {
+        validateAllFields(newData)
+      }, 100)
       setErrors({})
     } else {
       onValidation(false)
@@ -238,7 +302,7 @@ export default function BeneficiaryDetails({ data, onChange, onValidation }: Ben
             value={data.accountNumber}
             onChange={(e) => handleChange('accountNumber', e.target.value)}
             error={!!errors.accountNumber}
-            helperText={errors.accountNumber || (inputsReadOnly ? 'Enter the beneficiary account number' : '')}
+            helperText={errors.accountNumber || (inputsReadOnly ? 'Enter the beneficiary account number' : (mode === 'saved' && data.accountNumber.includes('*') ? 'Please enter the full account number (masked for security)' : ''))}
             inputProps={{ inputMode: 'numeric' }}
             required
             fullWidth
@@ -299,8 +363,8 @@ export default function BeneficiaryDetails({ data, onChange, onValidation }: Ben
           fullWidth
         >
           {swiftCountries.map((country) => (
-            <MenuItem key={country} value={country}>
-              {country}
+            <MenuItem key={country.code} value={country.code}>
+              {country.name}
             </MenuItem>
           ))}
         </TextField>

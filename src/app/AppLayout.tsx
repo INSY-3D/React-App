@@ -1,4 +1,4 @@
-import { type PropsWithChildren, useEffect, useState } from 'react'
+import { type PropsWithChildren } from 'react'
 import AppBar from '@mui/material/AppBar'
 import Toolbar from '@mui/material/Toolbar'
 import Typography from '@mui/material/Typography'
@@ -24,6 +24,7 @@ import { useAppDispatch } from '../store'
 import { logout } from '../store/authSlice'
 import { performLogout } from '../lib/authCheck'
 import { AnimatePresence, motion } from 'framer-motion'
+import { useColorScheme } from '@mui/material/styles'
 
 const navItems = [
   { label: 'Home', icon: <HomeRoundedIcon />, path: '/' },
@@ -42,22 +43,20 @@ export default function AppLayout({ children }: PropsWithChildren) {
     navItems.findIndex((i) => i.path === location.pathname),
   )
 
-  const THEME_KEY = 'np_theme'
-  const [dark, setDark] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem(THEME_KEY) === 'dark'
-    } catch { return false }
-  })
-
-  useEffect(() => {
-    try { localStorage.setItem(THEME_KEY, dark ? 'dark' : 'light') } catch {}
-    document.documentElement.setAttribute('data-color-scheme', dark ? 'dark' : 'light')
-  }, [dark])
+  const { mode, setMode } = useColorScheme()
+  const currentMode = mode || 'light'
 
   const handleLogout = async () => {
     try { await performLogout() } catch {}
     dispatch(logout())
     navigate('/login')
+  }
+
+  const toggleMode = () => {
+    const next = currentMode === 'dark' ? 'light' : 'dark'
+    setMode(next as any)
+    try { localStorage.setItem('np_theme', next) } catch {}
+    try { document.documentElement.setAttribute('data-mui-color-scheme', next) } catch {}
   }
 
   const pageVariants = {
@@ -70,16 +69,16 @@ export default function AppLayout({ children }: PropsWithChildren) {
 
   return (
     <Box sx={{ pb: { xs: 9, sm: 0 } }}>
-      <AppBar position="sticky" color="transparent" enableColorOnDark>
+      <AppBar position="sticky" enableColorOnDark>
         <Toolbar>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexGrow: 1 }}>
             <img src={npLogo} alt="NexusPay" style={{ height: 28, width: 28, borderRadius: 6 }} />
             <Typography variant="h6" fontWeight={700}>NexusPay</Typography>
           </Box>
           <Box sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center', gap: 0.5 }}>
-            <Tooltip title={dark ? 'Switch to light mode' : 'Switch to dark mode'}>
-              <IconButton color="inherit" onClick={() => setDark((v) => !v)}>
-                {dark ? <LightModeRoundedIcon /> : <DarkModeRoundedIcon />}
+            <Tooltip title={currentMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
+              <IconButton color="inherit" onClick={toggleMode}>
+                {currentMode === 'dark' ? <LightModeRoundedIcon /> : <DarkModeRoundedIcon />}
               </IconButton>
             </Tooltip>
             <Tooltip title="Profile">

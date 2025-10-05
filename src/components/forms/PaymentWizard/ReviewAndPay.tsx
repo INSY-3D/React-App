@@ -8,7 +8,7 @@ import Chip from '@mui/material/Chip'
 import Box from '@mui/material/Box'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import SecurityIcon from '@mui/icons-material/Security'
-import { maskAccountNumber } from '../../../lib/validation'
+import { maskAccountNumber, getCurrencySymbol } from '../../../lib/validation'
 
 interface PaymentData {
   paymentDetails: {
@@ -40,8 +40,30 @@ export default function ReviewAndPay({ data, onValidation }: ReviewAndPayProps) 
 
   // Calculate estimated fees (mock calculation)
   const amount = parseFloat(data.paymentDetails.amount || '0')
-  const transferFee = Math.max(15, amount * 0.001) // Min $15 or 0.1%
-  const exchangeFee = amount * 0.002 // 0.2% for currency conversion
+  const currency = data.paymentDetails.currency
+  const currencySymbol = getCurrencySymbol(currency)
+  
+  // Base fee amounts in USD, then convert to selected currency
+  const baseTransferFee = Math.max(15, amount * 0.001) // Min $15 or 0.1%
+  const baseExchangeFee = amount * 0.002 // 0.2% for currency conversion
+  
+  // Simple conversion rates (in real app, use live rates)
+  const conversionRates: Record<string, number> = {
+    'USD': 1,
+    'EUR': 0.85,
+    'GBP': 0.73,
+    'JPY': 110,
+    'CAD': 1.25,
+    'AUD': 1.35,
+    'CHF': 0.92,
+    'CNY': 6.45,
+    'ZAR': 15.5,
+    'SEK': 8.5
+  }
+  
+  const rate = conversionRates[currency] || 1
+  const transferFee = baseTransferFee * rate
+  const exchangeFee = baseExchangeFee * rate
   const totalFees = transferFee + exchangeFee
   const totalAmount = amount + totalFees
 
@@ -77,12 +99,12 @@ export default function ReviewAndPay({ data, onValidation }: ReviewAndPayProps) 
           
           <Box display="flex" justifyContent="space-between" color="text.secondary">
             <Typography variant="body2">Transfer Fee:</Typography>
-            <Typography variant="body2">${transferFee.toFixed(2)}</Typography>
+            <Typography variant="body2">{currencySymbol}{transferFee.toFixed(2)}</Typography>
           </Box>
           
           <Box display="flex" justifyContent="space-between" color="text.secondary">
             <Typography variant="body2">Exchange Fee:</Typography>
-            <Typography variant="body2">${exchangeFee.toFixed(2)}</Typography>
+            <Typography variant="body2">{currencySymbol}{exchangeFee.toFixed(2)}</Typography>
           </Box>
           
           <Divider />
@@ -90,7 +112,7 @@ export default function ReviewAndPay({ data, onValidation }: ReviewAndPayProps) 
           <Box display="flex" justifyContent="space-between">
             <Typography variant="h6" fontWeight={700}>Total Debit:</Typography>
             <Typography variant="h6" fontWeight={700} color="primary.main">
-              ${totalAmount.toFixed(2)}
+              {currencySymbol}{totalAmount.toFixed(2)}
             </Typography>
           </Box>
         </Stack>

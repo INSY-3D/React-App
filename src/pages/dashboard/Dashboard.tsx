@@ -22,6 +22,7 @@ import GroupsRoundedIcon from '@mui/icons-material/GroupsRounded'
 import BadgeIcon from '@mui/icons-material/Badge'
 import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn'
 import SendIcon from '@mui/icons-material/Send'
+import VisibilityIcon from '@mui/icons-material/Visibility'
 import { Link as RouterLink } from 'react-router-dom'
 import { useMemo } from 'react'
 import { useAppSelector } from '../../store'
@@ -51,7 +52,7 @@ function formatCurrency(amount: number, currency: string) {
   try {
     return new Intl.NumberFormat('en-ZA', { style: 'currency', currency }).format(amount)
   } catch {
-    return `${currency} ${amount.toFixed(2)}`
+    return `${amount.toFixed(2)} ${currency}`
   }
 }
 
@@ -62,6 +63,10 @@ interface PaymentRow {
   reference?: string
   purpose?: string
   beneficiaryName?: string
+  beneficiaryBank?: string
+  swiftCode?: string
+  accountNumber?: string
+  iban?: string
   status: string
   createdAt: string
 }
@@ -91,7 +96,7 @@ export default function Dashboard() {
   const isStaff = (user?.role === 'staff' || user?.role === 'admin')
   const welcomeMessage = isFirstLogin ? 'Welcome' : `Welcome back${user?.fullName ? `, ${user.fullName}` : ''}`
 
-  // Determine user's preferred currency: from profile (future), or localStorage, else ZAR
+  // Determine user's preferred currency
   const preferredCurrency = useMemo(() => {
     if ((user as any)?.preferredCurrency) return (user as any).preferredCurrency as string
     try {
@@ -102,12 +107,14 @@ export default function Dashboard() {
     }
   }, [user])
 
+  const userKey = user?.id || user?.email || 'anon'
+
   // Customer data (recent payments)
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['dashboard-payments'],
+    queryKey: ['dashboard-payments', userKey],
     queryFn: async () => {
-      const res = await api.get('/api/v1/payments', { params: { page: 1, limit: 10 } })
-      return res.data as PaymentListResponse
+      const res = await api.get('/payments', { params: { page: 1, limit: 10 } })
+      return res.data.data as PaymentListResponse
     },
     enabled: !isStaff,
   })
@@ -133,11 +140,51 @@ export default function Dashboard() {
   const { data: staffQueue, isLoading: isQueueLoading, error: queueError, refetch: refetchQueue } = useQuery({
     queryKey: ['staff-queue-dashboard'],
     queryFn: async () => {
-      const res = await api.get('/api/v1/payments/staff/queue', { params: { page: 1, limit: 20 } })
-      return res.data as { payments: Array<{ id: string; amount: number; currency: string; beneficiaryName?: string; swiftCode?: string; reference?: string }> }
+      const res = await api.get('/payments/staff/queue', { params: { page: 1, limit: 20 } })
+      return res.data.data as { payments: Array<{ id: string; amount: number; currency: string; beneficiaryName?: string; swiftCode?: string; reference?: string }> }
     },
     enabled: isStaff,
   })
+
+  // Staff data (verified payments)
+  const { data: verifiedPayments, isLoading: isVerifiedLoading, error: verifiedError, refetch: refetchVerified } = useQuery({
+    queryKey: ['staff-verified-dashboard'],
+    queryFn: async () => {
+      const res = await api.get('/payments/staff/verified', { params: { page: 1, limit: 50 } })
+      return res.data.data as { payments: Array<{ id: string; amount: number; currency: string; beneficiaryName?: string; swiftCode?: string; reference?: string; staffVerifiedAt?: string }> }
+    },
+    enabled: isStaff,
+  })
+
+  // Staff data (SWIFT submitted payments)
+  const { data: swiftPayments, isLoading: isSwiftLoading, error: swiftError, refetch: refetchSwift } = useQuery({
+    queryKey: ['staff-swift-dashboard'],
+    queryFn: async () => {
+      const res = await api.get('/payments/staff/swift', { params: { page: 1, limit: 50 } })
+      return res.data.data as { payments: Array<{ id: string; amount: number; currency: string; beneficiaryName?: string; swiftCode?: string; reference?: string; submittedToSwiftAt?: string }> }
+    },
+    enabled: isStaff,
+  })
+
+  // Calculate staff metrics
+  const staffMetrics = useMemo(() => {
+    const today = new Date().toDateString()
+    
+    const verifiedToday = verifiedPayments?.payments?.filter(p => {
+      if (!p.staffVerifiedAt) return false
+      return new Date(p.staffVerifiedAt).toDateString() === today
+    }).length || 0
+
+    const swiftToday = swiftPayments?.payments?.filter(p => {
+      if (!p.submittedToSwiftAt) return false
+      return new Date(p.submittedToSwiftAt).toDateString() === today
+    }).length || 0
+
+    return {
+      verifiedToday,
+      swiftToday
+    }
+  }, [verifiedPayments, swiftPayments])
 
   // Header with CTAs remains across roles
   return (
@@ -225,7 +272,7 @@ export default function Dashboard() {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {data.payments.length === 0 ? (
+                    {(!data?.payments || data.payments.length === 0) ? (
                       <TableRow>
                         <TableCell colSpan={5} align="center">No recent payments</TableCell>
                       </TableRow>
@@ -270,13 +317,13 @@ export default function Dashboard() {
             <Grid size={{ xs: 12, sm: 6, md: 4 }}>
               <Paper sx={{ p: 2 }}>
                 <Typography variant="body2" color="text.secondary">Verified today</Typography>
-                <Typography variant="h5" fontWeight={800}>—</Typography>
+                <Typography variant="h5" fontWeight={800}>{staffMetrics.verifiedToday}</Typography>
               </Paper>
             </Grid>
             <Grid size={{ xs: 12, sm: 6, md: 4 }}>
               <Paper sx={{ p: 2 }}>
                 <Typography variant="body2" color="text.secondary">Submitted to SWIFT today</Typography>
-                <Typography variant="h5" fontWeight={800}>—</Typography>
+                <Typography variant="h5" fontWeight={800}>{staffMetrics.swiftToday}</Typography>
               </Paper>
             </Grid>
           </Grid>
@@ -334,6 +381,88 @@ export default function Dashboard() {
             <Box p={2} display="flex" justifyContent="flex-end" gap={1}>
               <Button component={RouterLink} to="/staff" variant="outlined" startIcon={<AssignmentTurnedInIcon />}>Verify</Button>
               <Button component={RouterLink} to="/staff" variant="contained" startIcon={<SendIcon />}>Submit to SWIFT</Button>
+            </Box>
+          </Paper>
+
+          {/* Verified and Submitted Payments Section */}
+          <Paper>
+            <Box p={3} borderBottom="1px solid" borderColor="divider">
+              <Box display="flex" justifyContent="space-between" alignItems="center">
+                <Typography variant="h6" fontWeight={700}>Verified & Submitted Payments</Typography>
+                <Tooltip title="Refresh">
+                  <IconButton onClick={() => { refetchVerified(); refetchSwift(); }} size="small">
+                    <RefreshIcon />
+                  </IconButton>
+                </Tooltip>
+              </Box>
+            </Box>
+
+            {isVerifiedLoading || isSwiftLoading ? <LinearProgress /> : null}
+            {(verifiedError || swiftError) && (
+              <Box p={3}>
+                <Alert severity="error">Failed to load verified payments.</Alert>
+              </Box>
+            )}
+
+            {verifiedPayments && swiftPayments && (
+              <TableContainer>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Ref</TableCell>
+                      <TableCell>Beneficiary</TableCell>
+                      <TableCell>SWIFT</TableCell>
+                      <TableCell>Amount</TableCell>
+                      <TableCell>Status</TableCell>
+                      <TableCell>Date</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {[...(verifiedPayments.payments || []), ...(swiftPayments.payments || [])].length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} align="center">No verified or submitted payments.</TableCell>
+                      </TableRow>
+                    ) : (
+                      [...(verifiedPayments.payments || []), ...(swiftPayments.payments || [])]
+                        .sort((a, b) => {
+                          const dateA = new Date(a.staffVerifiedAt || a.submittedToSwiftAt || 0)
+                          const dateB = new Date(b.staffVerifiedAt || b.submittedToSwiftAt || 0)
+                          return dateB.getTime() - dateA.getTime()
+                        })
+                        .slice(0, 10)
+                        .map((p) => {
+                          const isVerified = p.staffVerifiedAt && !p.submittedToSwiftAt
+                          const isSubmitted = p.submittedToSwiftAt
+                          const status = isSubmitted ? 'submitted_to_swift' : 'verified'
+                          const date = p.submittedToSwiftAt || p.staffVerifiedAt
+                          
+                          return (
+                            <TableRow key={p.id} hover>
+                              <TableCell>{p.reference || p.id}</TableCell>
+                              <TableCell>{p.beneficiaryName || '—'}</TableCell>
+                              <TableCell>{p.swiftCode || '—'}</TableCell>
+                              <TableCell>{formatCurrency(p.amount, 'USD')}</TableCell>
+                              <TableCell>
+                                <Chip
+                                  label={statusConfig[status]?.label || status}
+                                  color={statusConfig[status]?.color || 'default'}
+                                  size="small"
+                                />
+                              </TableCell>
+                              <TableCell>
+                                {date ? new Date(date).toLocaleDateString() : '—'}
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+
+            <Box p={2} display="flex" justifyContent="flex-end" gap={1}>
+              <Button component={RouterLink} to="/staff" variant="outlined" startIcon={<VisibilityIcon />}>View All</Button>
             </Box>
           </Paper>
         </>

@@ -60,7 +60,7 @@ export default function PaymentDetail() {
   const { data: payment, isLoading, error } = useQuery({
     queryKey: ['payment', id],
     queryFn: async () => {
-      const response = await api.get(`/api/v1/payments/${id}`)
+      const response = await api.get(`/payments/${id}`)
       return response.data.data as PaymentDetails
     },
     enabled: !!id

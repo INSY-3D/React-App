@@ -1,4 +1,4 @@
-import { createTheme } from '@mui/material/styles'
+import { extendTheme } from '@mui/material/styles'
 
 declare module '@mui/material/styles' {
   interface Palette {
@@ -9,13 +9,13 @@ declare module '@mui/material/styles' {
   }
 }
 
-export const theme = createTheme({
+export const theme = extendTheme({
   cssVariables: true,
   colorSchemes: {
     light: {
       palette: {
-        primary: { main: '#3B82F6' }, // Sky Blue
-        secondary: { main: '#34D399' }, // Mint Green
+        primary: { main: '#3B82F6' },
+        secondary: { main: '#34D399' },
         success: { main: '#10B981' },
         error: { main: '#EF4444' },
         warning: { main: '#FBBF24' },
@@ -46,6 +46,31 @@ export const theme = createTheme({
   },
   shape: { borderRadius: 12 },
   components: {
+    MuiCssBaseline: {
+      styleOverrides: {
+        ':root': {
+          '--np-bg-gradient': 'linear-gradient(135deg, #3B82F6 0%, #34D399 100%)',
+        },
+        'html[data-mui-color-scheme="light"]': {
+          '--np-bg-gradient': 'linear-gradient(135deg, #3B82F6 0%, #34D399 100%)',
+        },
+        'html[data-mui-color-scheme="dark"]': {
+          '--np-bg-gradient': 'linear-gradient(135deg, #0F172A 0%, #111827 100%)',
+        },
+        'body[data-mui-color-scheme="light"]': {
+          '--np-bg-gradient': 'linear-gradient(135deg, #3B82F6 0%, #34D399 100%)',
+        },
+        'body[data-mui-color-scheme="dark"]': {
+          '--np-bg-gradient': 'linear-gradient(135deg, #0F172A 0%, #111827 100%)',
+        },
+        'html, body, #root': {
+          height: '100%',
+          background: 'var(--np-bg-gradient) !important',
+          color: 'var(--mui-palette-text-primary) !important',
+          transition: 'background-color 200ms ease, color 200ms ease, background 200ms ease',
+        },
+      },
+    },
     MuiTextField: {
       defaultProps: {
         InputLabelProps: { shrink: true },

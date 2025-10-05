@@ -102,7 +102,7 @@ export default function Register() {
 
     setLoading(true)
     try {
-      const res = await api.post('/api/v1/register', {
+      const res = await api.post('/auth/register', {
         fullName: data.fullName,
         saId: data.saId,
         accountNumber: data.accountNumber,
@@ -114,7 +114,7 @@ export default function Register() {
       
       // Consider the user authenticated post-registration and mark as first login
       dispatch(loginSuccess({ 
-        user: res.data?.user,
+        user: res.data?.data?.user,
         isFirstLogin: true 
       }))
       
@@ -127,12 +127,12 @@ export default function Register() {
   }
 
   const handleDemoData = () => {
-    setValue('fullName', 'Dev User', { shouldValidate: true })
-    setValue('saId', '9001014800086', { shouldValidate: true })
-    setValue('accountNumber', '1234567890', { shouldValidate: true })
+    setValue('fullName', 'Test Customer', { shouldValidate: true })
+    setValue('saId', '1234567890123', { shouldValidate: true })
+    setValue('accountNumber', '12345678', { shouldValidate: true })
     setValue('email', 'test@nexuspay.dev', { shouldValidate: true })
-    setValue('password', 'DevPassw0rd!2025', { shouldValidate: true })
-    setValue('confirmPassword', 'DevPassw0rd!2025', { shouldValidate: true })
+    setValue('password', 'TestPass123!', { shouldValidate: true })
+    setValue('confirmPassword', 'TestPass123!', { shouldValidate: true })
   }
 
   return (

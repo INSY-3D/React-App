@@ -32,6 +32,7 @@ export default function App() {
           <Route path="/payments" element={<Payments />} />
           <Route path="/payments/new" element={<NewPayment />} />
           <Route path="/payments/:id" element={<PaymentDetail />} />
+          <Route path="/payments/:id/edit" element={<NewPayment />} />
           <Route path="/beneficiaries" element={<Beneficiaries />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/staff" element={<StaffPortal />} />

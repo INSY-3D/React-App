@@ -4,7 +4,7 @@ import { getCsrfToken } from './csrf'
 const DEV = import.meta.env.DEV
 const MOCK = (import.meta.env.VITE_MOCK_API as string) === 'true'
 
-export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string) ?? 'http://localhost:5118'
+export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string) ?? 'http://localhost:5118/api/v1'
 
 const TOKEN_STORAGE_KEY = 'np_access_token'
 let bearerToken: string | null = null
@@ -90,40 +90,54 @@ if (MOCK) {
 
     await new Promise((r) => setTimeout(r, 300))
 
-    if (url.endsWith('/api/v1/csrf') && method === 'get') {
-      return respond(200, { token: 'mock-csrf-token' })
+    if (url.endsWith('/csrf') && method === 'get') {
+      return respond(200, { success: true, data: { token: 'mock-csrf-token' } })
     }
-    if (url.endsWith('/api/v1/login') && method === 'post') {
+    if (url.endsWith('/auth/login') && method === 'post') {
       const { usernameOrEmail, accountNumber, password, otp } = body || {}
-      const ok = usernameOrEmail && accountNumber === '1234567890' && password === 'DevPassw0rd!2025'
+      const ok = usernameOrEmail && accountNumber === '12345678' && password === 'TestPass123!'
       if (!ok) {
-        return respond(401, { message: 'Invalid credentials' })
+        return respond(401, { success: false, message: 'Invalid credentials', code: 'LOGIN_FAILED' })
       }
       if (!otp && usernameOrEmail !== 'test@nexuspay.dev') {
-        return respond(200, { mfa: 'required' })
+        return respond(200, { success: true, message: 'MFA required', data: { mfa: 'required', user: { id: '1', fullName: 'Test User', role: 'customer' } } })
       }
       ;(window as any).__nexuspay_isAuthed = true
       setAuthToken('mock-access-token')
-      return respond(200, { displayName: 'Dev User', unknownDevice: false, user: { createdAt: new Date().toISOString() }, accessToken: 'mock-access-token', refreshToken: 'mock-refresh-token' })
+      return respond(200, { 
+        success: true, 
+        message: 'Login successful',
+        data: {
+          user: { id: '1', fullName: 'Test User', role: 'customer', createdAt: new Date().toISOString() },
+          accessToken: 'mock-access-token',
+          refreshToken: 'mock-refresh-token',
+          expiresIn: '15m',
+          unknownDevice: false
+        }
+      })
     }
-    if (url.endsWith('/api/v1/register') && method === 'post') {
-      return respond(200, { ok: true })
+    if (url.endsWith('/auth/register') && method === 'post') {
+      return respond(201, { success: true, message: 'Registration successful' })
     }
-    if (url.endsWith('/api/v1/logout') && method === 'post') {
+    if (url.endsWith('/auth/logout') && method === 'post') {
       ;(window as any).__nexuspay_isAuthed = false
       setAuthToken(null)
-      return respond(200, { ok: true })
+      return respond(200, { success: true, message: 'Logout successful' })
     }
-    if (url.endsWith('/api/v1/payments') && method === 'post') {
-      const { amount, currency, reference, purpose, fullName, swiftCode } = body || {}
-      if (!amount || !currency || !reference || !purpose || !fullName || !swiftCode) {
-        return respond(400, { message: 'Missing required payment fields' })
+    if (url.endsWith('/payments') && method === 'post') {
+      const { amount, currency, provider, idempotencyKey } = body || {}
+      if (!amount || !currency || !provider || !idempotencyKey) {
+        return respond(400, { success: false, message: 'Missing required payment fields', code: 'PAYMENT_CREATION_FAILED' })
       }
       const paymentId = 'P-' + Math.random().toString(36).substr(2, 9).toUpperCase()
-      return respond(200, { 
-        paymentId, 
-        status: 'pending_verification',
-        message: 'Payment submitted successfully' 
+      return respond(201, { 
+        success: true,
+        message: 'Draft payment created successfully',
+        data: {
+          paymentId, 
+          status: 'draft',
+          estimatedProcessingTime: 'Add beneficiary details to proceed'
+        }
       })
     }
     return respond(404, { message: 'Mock route not found' })

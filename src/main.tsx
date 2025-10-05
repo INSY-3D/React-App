@@ -1,13 +1,13 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
-import { CssBaseline, GlobalStyles } from '@mui/material'
-import { ThemeProvider } from '@mui/material/styles'
+import { CssBaseline } from '@mui/material'
+import { CssVarsProvider } from '@mui/material/styles'
 import { Provider as ReduxProvider } from 'react-redux'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { store } from './store'
 import queryClient from './lib/queryClient'
-// import '@fontsource-variable/inter' // Font will be loaded via CDN or system fonts
+// import '@fontsource-variable/inter'
 import theme from './theme'
 import './index.css'
 import App from './App.tsx'
@@ -23,14 +23,8 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ReduxProvider store={store}>
       <QueryClientProvider client={queryClient}>
-        <ThemeProvider theme={theme}>
+        <CssVarsProvider theme={theme} defaultMode="light" modeStorageKey="np_theme">
           <CssBaseline />
-          <GlobalStyles styles={{
-            'html, body, #root': { height: '100%' },
-            body: {
-              background: 'linear-gradient(135deg, #3B82F6 0%, #34D399 100%)',
-            },
-          }} />
           <BrowserRouter>
             <ErrorBoundary>
               <NotificationsProvider>
@@ -38,7 +32,7 @@ createRoot(document.getElementById('root')!).render(
               </NotificationsProvider>
             </ErrorBoundary>
           </BrowserRouter>
-        </ThemeProvider>
+        </CssVarsProvider>
       </QueryClientProvider>
     </ReduxProvider>
   </StrictMode>,
@@ -47,7 +41,7 @@ createRoot(document.getElementById('root')!).render(
 // Bootstrap: fetch CSRF token and listen for forced logouts
 ;(async () => {
   try {
-    const res = await api.get('/api/v1/csrf')
+    const res = await api.get('/auth/csrf')
     if (res.data?.token) setCsrfToken(res.data.token)
   } catch {
     // ignore; token may be set later upon login

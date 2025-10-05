@@ -96,9 +96,7 @@ export default function PaymentDetails({ data, onChange, onValidation }: Payment
             onChange={(e) => handleChange('amount', e.target.value)}
             error={!!errors.amount}
             helperText={errors.amount}
-            InputProps={{
-              startAdornment: <InputAdornment position="start">$</InputAdornment>,
-            }}
+            InputProps={{}}
             inputProps={{
               inputMode: 'decimal',
               pattern: '[0-9]+(\\.[0-9]{1,2})?'

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Stack from '@mui/material/Stack'
 import Stepper from '@mui/material/Stepper'
 import Step from '@mui/material/Step'
@@ -13,7 +13,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward'
 import SendIcon from '@mui/icons-material/Send'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 
 import PaymentDetails from './PaymentDetails'
 import BeneficiaryDetails from './BeneficiaryDetails'
@@ -45,14 +45,62 @@ interface PaymentData {
 
 export default function PaymentWizard() {
   const navigate = useNavigate()
+  const { id } = useParams<{ id: string }>()
   const [activeStep, setActiveStep] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isComplete, setIsComplete] = useState(false)
   const [stepValidation, setStepValidation] = useState<boolean[]>([false, false, false])
-  const [paymentId, setPaymentId] = useState<string | null>(null) // Track created payment ID
+  const [paymentId, setPaymentId] = useState<string | null>(id || null) // Track created payment ID or existing ID
   const [isCreatingDraft, setIsCreatingDraft] = useState(false)
   const [isUpdatingBeneficiary, setIsUpdatingBeneficiary] = useState(false)
+  const [isEditing, setIsEditing] = useState(!!id) // Check if we're editing an existing payment
   const { notify } = useNotifications()
+
+  // Load existing payment data when editing
+  useEffect(() => {
+    if (isEditing && paymentId) {
+      loadExistingPaymentData()
+    }
+  }, [isEditing, paymentId])
+
+  const loadExistingPaymentData = async () => {
+    try {
+      const response = await api.get(`/payments/${paymentId}`)
+      const payment = response.data.data
+      
+      if (payment) {
+        setPaymentData({
+          paymentDetails: {
+            amount: payment.amount?.toString() || '',
+            currency: payment.currency || 'USD',
+            reference: payment.reference || '',
+            purpose: payment.purpose || ''
+          },
+          beneficiaryDetails: {
+            fullName: payment.beneficiaryName || '',
+            bankName: payment.beneficiaryBankName || '',
+            swiftCode: payment.swiftBic || '',
+            accountNumber: payment.beneficiaryAccountNumber || '',
+            iban: payment.beneficiaryIban || '',
+            address: payment.beneficiaryAddress || '',
+            city: payment.beneficiaryCity || '',
+            postalCode: payment.beneficiaryPostalCode || '',
+            country: payment.beneficiaryCountry || ''
+          }
+        })
+        
+        // Set the appropriate step based on payment status
+        if (payment.status === 'draft') {
+          setActiveStep(1) // Go to beneficiary details step
+        } else if (payment.status === 'pending_review') {
+          setActiveStep(2) // Go to review step
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load payment data:', error)
+      notify({ severity: 'error', message: 'Failed to load payment data' })
+    }
+  }
 
   const [paymentData, setPaymentData] = useState<PaymentData>({
     paymentDetails: {
@@ -90,7 +138,12 @@ export default function PaymentWizard() {
 
   const handleNext = async () => {
     if (activeStep === 0) {
-      await createDraftPayment()
+      if (!isEditing) {
+        await createDraftPayment()
+      } else {
+        // When editing, just move to next step
+        setActiveStep(prev => prev + 1)
+      }
     } else if (activeStep === 1) {
       await updateBeneficiaryDetails()
     } else if (activeStep < steps.length - 1) {
@@ -108,17 +161,26 @@ export default function PaymentWizard() {
   const createDraftPayment = async () => {
     setIsCreatingDraft(true)
     try {
-      const response = await api.post('/api/v1/payments', {
+      const payload = {
         amount: paymentData.paymentDetails.amount,
         currency: paymentData.paymentDetails.currency,
         provider: 'SWIFT',
+        reference: paymentData.paymentDetails.reference,
+        purpose: paymentData.paymentDetails.purpose,
         idempotencyKey: `payment-${Date.now()}-${Math.random().toString(36).substring(2)}`
-      })
-      const createdPaymentId = response.data.paymentId || response.data.data?.id
+      }
+      console.log('Creating payment with payload:', payload)
+      
+      const response = await api.post('/payments', payload)
+      console.log('Payment creation response:', response.data)
+      
+      const createdPaymentId = response.data.data?.paymentId || response.data.paymentId
       setPaymentId(createdPaymentId)
       setActiveStep(1)
       notify({ severity: 'success', message: 'Payment draft created successfully.' })
     } catch (error: any) {
+      console.error('Payment creation error:', error)
+      console.error('Error response:', error?.response?.data)
       notify({ severity: 'error', message: error?.response?.data?.message || 'Failed to create payment draft. Please try again.' })
     } finally {
       setIsCreatingDraft(false)
@@ -133,16 +195,18 @@ export default function PaymentWizard() {
     }
     setIsUpdatingBeneficiary(true)
     try {
-      await api.put(`/api/v1/payments/${paymentId}/beneficiary`, {
+      const payload = {
         beneficiaryName: paymentData.beneficiaryDetails.fullName,
         beneficiaryAccountNumber: paymentData.beneficiaryDetails.accountNumber,
-        swiftBIC: paymentData.beneficiaryDetails.swiftCode,
+        swiftBic: paymentData.beneficiaryDetails.swiftCode,
         beneficiaryIban: paymentData.beneficiaryDetails.iban,
         beneficiaryAddress: paymentData.beneficiaryDetails.address,
         beneficiaryCity: paymentData.beneficiaryDetails.city,
         beneficiaryPostalCode: paymentData.beneficiaryDetails.postalCode,
         beneficiaryCountry: paymentData.beneficiaryDetails.country
-      })
+      }
+      console.log('Sending beneficiary payload:', payload)
+      await api.put(`/payments/${paymentId}/beneficiary`, payload)
       setActiveStep(2)
       notify({ severity: 'success', message: 'Beneficiary details updated successfully.' })
     } catch (error: any) {
@@ -160,10 +224,15 @@ export default function PaymentWizard() {
     }
     setIsSubmitting(true)
     try {
-      await api.post(`/api/v1/payments/${paymentId}/submit`, {
-        reference: paymentData.paymentDetails.reference,
-        purpose: paymentData.paymentDetails.purpose
-      })
+      const submitPayload: any = {}
+      if (paymentData.paymentDetails.reference) {
+        submitPayload.reference = paymentData.paymentDetails.reference
+      }
+      if (paymentData.paymentDetails.purpose) {
+        submitPayload.purpose = paymentData.paymentDetails.purpose
+      }
+      
+      await api.post(`/payments/${paymentId}/submit`, submitPayload)
       setIsComplete(true)
       notify({ severity: 'success', message: 'Payment submitted successfully and is pending verification.' })
       // Navigate back to payments after a short delay
@@ -238,7 +307,7 @@ export default function PaymentWizard() {
     <Stack spacing={4} sx={{ maxWidth: 800, mx: 'auto' }}>
       <Box>
         <Typography variant="h4" fontWeight={700} gutterBottom>
-          New International Payment
+          {isEditing ? 'Edit International Payment' : 'New International Payment'}
         </Typography>
         <Typography color="text.secondary">
           Send money internationally through the SWIFT network with full compliance monitoring.
