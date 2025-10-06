@@ -92,7 +92,7 @@ const statusConfig = {
 }
 
 export default function Dashboard() {
-  const { user, isFirstLogin } = useAppSelector((state) => state.auth)
+  const { user, isFirstLogin, isAuthenticated } = useAppSelector((state) => state.auth)
   const isStaff = (user?.role === 'staff' || user?.role === 'admin')
   const welcomeMessage = isFirstLogin ? 'Welcome' : `Welcome back${user?.fullName ? `, ${user.fullName}` : ''}`
 
@@ -116,7 +116,7 @@ export default function Dashboard() {
       const res = await api.get('/payments', { params: { page: 1, limit: 10 } })
       return res.data.data as PaymentListResponse
     },
-    enabled: !isStaff,
+    enabled: isAuthenticated && !isStaff,
   })
 
   const analytics = useMemo(() => {
@@ -143,7 +143,7 @@ export default function Dashboard() {
       const res = await api.get('/payments/staff/queue', { params: { page: 1, limit: 20 } })
       return res.data.data as { payments: Array<{ id: string; amount: number; currency: string; beneficiaryName?: string; swiftCode?: string; reference?: string }> }
     },
-    enabled: isStaff,
+    enabled: isAuthenticated && isStaff,
   })
 
   // Staff data (verified payments)
@@ -153,7 +153,7 @@ export default function Dashboard() {
       const res = await api.get('/payments/staff/verified', { params: { page: 1, limit: 50 } })
       return res.data.data as { payments: Array<{ id: string; amount: number; currency: string; beneficiaryName?: string; swiftCode?: string; reference?: string; staffVerifiedAt?: string }> }
     },
-    enabled: isStaff,
+    enabled: isAuthenticated && isStaff,
   })
 
   // Staff data (SWIFT submitted payments)
@@ -163,7 +163,7 @@ export default function Dashboard() {
       const res = await api.get('/payments/staff/swift', { params: { page: 1, limit: 50 } })
       return res.data.data as { payments: Array<{ id: string; amount: number; currency: string; beneficiaryName?: string; swiftCode?: string; reference?: string; submittedToSwiftAt?: string }> }
     },
-    enabled: isStaff,
+    enabled: isAuthenticated && isStaff,
   })
 
   // Calculate staff metrics
@@ -241,7 +241,7 @@ export default function Dashboard() {
           </Grid>
 
           <Paper>
-            <Box p={3} borderBottom="1px solid" borderColor="divider">
+            <Box p={3} borderBottom="1px solid" borderColor="divider" sx={{ position: 'sticky', top: 0, zIndex: 1, bgcolor: 'background.paper' }}>
               <Box display="flex" justifyContent="space-between" alignItems="center">
                 <Typography variant="h6" fontWeight={700}>Recent payments</Typography>
                 <Tooltip title="Refresh">
@@ -261,7 +261,7 @@ export default function Dashboard() {
 
             {data && (
               <TableContainer>
-                <Table size="small">
+                <Table size="small" sx={{ '& tbody tr:nth-of-type(odd)': { backgroundColor: 'rgba(148,163,184,0.04)' } }}>
                   <TableHead>
                     <TableRow>
                       <TableCell>Payment ID</TableCell>
@@ -329,7 +329,7 @@ export default function Dashboard() {
           </Grid>
 
           <Paper>
-            <Box p={3} borderBottom="1px solid" borderColor="divider">
+            <Box p={3} borderBottom="1px solid" borderColor="divider" sx={{ position: 'sticky', top: 0, zIndex: 1, bgcolor: 'background.paper' }}>
               <Box display="flex" justifyContent="space-between" alignItems="center">
                 <Typography variant="h6" fontWeight={700}>Pending payments (preview)</Typography>
                 <Tooltip title="Refresh">
@@ -349,7 +349,7 @@ export default function Dashboard() {
 
             {staffQueue && (
               <TableContainer>
-                <Table size="small">
+                <Table size="small" sx={{ '& tbody tr:nth-of-type(odd)': { backgroundColor: 'rgba(148,163,184,0.04)' } }}>
                   <TableHead>
                     <TableRow>
                       <TableCell>Ref</TableCell>
@@ -386,7 +386,7 @@ export default function Dashboard() {
 
           {/* Verified and Submitted Payments Section */}
           <Paper>
-            <Box p={3} borderBottom="1px solid" borderColor="divider">
+            <Box p={3} borderBottom="1px solid" borderColor="divider" sx={{ position: 'sticky', top: 0, zIndex: 1, bgcolor: 'background.paper' }}>
               <Box display="flex" justifyContent="space-between" alignItems="center">
                 <Typography variant="h6" fontWeight={700}>Verified & Submitted Payments</Typography>
                 <Tooltip title="Refresh">
@@ -406,7 +406,7 @@ export default function Dashboard() {
 
             {verifiedPayments && swiftPayments && (
               <TableContainer>
-                <Table size="small">
+                <Table size="small" sx={{ '& tbody tr:nth-of-type(odd)': { backgroundColor: 'rgba(148,163,184,0.04)' } }}>
                   <TableHead>
                     <TableRow>
                       <TableCell>Ref</TableCell>

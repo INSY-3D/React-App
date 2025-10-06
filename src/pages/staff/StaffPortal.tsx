@@ -148,7 +148,7 @@ export default function StaffPortal() {
         {queueError && <Alert severity="error">Failed to load pending payments.</Alert>}
         {staffQueue && (
           <TableContainer>
-            <Table size="small">
+            <Table size="small" sx={{ '& tbody tr:nth-of-type(odd)': { backgroundColor: 'rgba(148,163,184,0.04)' } }}>
               <TableHead>
                 <TableRow>
                   <TableCell>Payment ID</TableCell>
@@ -171,7 +171,7 @@ export default function StaffPortal() {
                     <TableCell>{p.customerName || p.customerEmail || 'N/A'}</TableCell>
                     <TableCell>{p.amount} {p.currency}</TableCell>
                     <TableCell>{p.beneficiaryName || 'N/A'}</TableCell>
-                    <TableCell>{maskPII(p.accountNumber)}</TableCell>
+                    <TableCell>{p.accountNumber}</TableCell>
                     <TableCell>{p.swiftCode || 'N/A'}</TableCell>
                     <TableCell align="center">
                       <Button size="small" variant="contained" onClick={() => handle(p.id, 'verify')}>Verify</Button>
@@ -192,7 +192,7 @@ export default function StaffPortal() {
         {verifiedError && <Alert severity="error">Failed to load verified payments.</Alert>}
         {verifiedQueue && (
           <TableContainer>
-            <Table size="small">
+            <Table size="small" sx={{ '& tbody tr:nth-of-type(odd)': { backgroundColor: 'rgba(148,163,184,0.04)' } }}>
               <TableHead>
                 <TableRow>
                   <TableCell>Payment ID</TableCell>
@@ -215,7 +215,7 @@ export default function StaffPortal() {
                     <TableCell>{p.customerName || p.customerEmail || 'N/A'}</TableCell>
                     <TableCell>{p.amount} {p.currency}</TableCell>
                     <TableCell>{p.beneficiaryName || 'N/A'}</TableCell>
-                    <TableCell>{maskPII(p.accountNumber)}</TableCell>
+                    <TableCell>{p.accountNumber}</TableCell>
                     <TableCell>{p.swiftCode || 'N/A'}</TableCell>
                     <TableCell align="center">
                       <Button size="small" variant="contained" onClick={() => handle(p.id, 'submit')}>Submit to SWIFT</Button>
@@ -237,7 +237,7 @@ export default function StaffPortal() {
         {swiftError && <Alert severity="error">Failed to load completed payments.</Alert>}
         {swiftQueue && (
           <TableContainer>
-            <Table size="small">
+            <Table size="small" sx={{ '& tbody tr:nth-of-type(odd)': { backgroundColor: 'rgba(148,163,184,0.04)' } }}>
               <TableHead>
                 <TableRow>
                   <TableCell>Payment ID</TableCell>

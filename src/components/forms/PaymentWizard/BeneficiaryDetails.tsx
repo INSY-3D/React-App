@@ -102,8 +102,10 @@ export default function BeneficiaryDetails({ data, onChange, onValidation }: Ben
         if (!validateCountryCode(value)) newErrors.country = 'Please select a supported country'; else delete newErrors.country
         break
     }
+    // Merge the latest field value to avoid validating against stale data
+    const merged = { ...data, [field]: value }
     setErrors(newErrors)
-    validateForm(data, newErrors)
+    validateForm(merged, newErrors)
   }
 
   const validateForm = (formData: any, currentErrors: Record<string, string> = errors) => {

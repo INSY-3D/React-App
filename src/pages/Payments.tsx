@@ -121,7 +121,7 @@ export default function Payments() {
       </Box>
       
       <Paper>
-        <Box p={3} borderBottom="1px solid" borderColor="divider">
+        <Box p={3} borderBottom="1px solid" borderColor="divider" sx={{ position: 'sticky', top: 0, zIndex: 1, bgcolor: 'background.paper' }}>
           <Box display="flex" justifyContent="space-between" alignItems="center">
             <Typography variant="h6" fontWeight={600}>
               Payment History
@@ -147,7 +147,9 @@ export default function Payments() {
         {data && (
           <>
             <TableContainer>
-              <Table>
+              <Table sx={{
+                '& tbody tr:nth-of-type(odd)': { backgroundColor: 'rgba(148,163,184,0.04)' }
+              }}>
                 <TableHead>
                   <TableRow>
                     <TableCell>Payment ID</TableCell>

@@ -67,7 +67,8 @@ export default function Login() {
     if (!canAttempt) return
     
     // Additional allowlist validation for account number
-    if (!validateAllowList(data.accountNumber, allowList.accountNumber)) {
+    const normalizedAccount = (data.accountNumber || '').replace(/\s/g, '').trim()
+    if (!validateAllowList(normalizedAccount, allowList.accountNumber)) {
       return setError('Invalid account number format.')
     }
     
@@ -76,9 +77,9 @@ export default function Login() {
     
     try {
       const res = await api.post('/auth/login', {
-        usernameOrEmail: data.usernameOrEmail,
-        accountNumber: data.accountNumber,
-        password: data.password,
+        usernameOrEmail: (data.usernameOrEmail || '').trim(),
+        accountNumber: normalizedAccount,
+        password: (data.password || '').trim(),
         otp: mfaRequired ? data.otp : undefined,
       })
       
@@ -107,8 +108,9 @@ export default function Login() {
           notify({ severity: 'warning', message: 'Login from unknown device detected' })
         }
       }
-    } catch {
-      setError('Invalid credentials')
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || 'Invalid credentials'
+      setError(msg)
       dispatch(loginFailed())
     } finally {
       setLoading(false)
@@ -135,6 +137,8 @@ export default function Login() {
           error={!!errors.usernameOrEmail}
           helperText={errors.usernameOrEmail?.message}
           required 
+          autoComplete="username"
+          inputProps={{ autoCapitalize: 'none', autoCorrect: 'off', spellCheck: false }}
         />
         <TextField 
           label="Account Number" 
@@ -142,6 +146,8 @@ export default function Login() {
           error={!!errors.accountNumber}
           helperText={errors.accountNumber?.message}
           required 
+          autoComplete="off"
+          inputProps={{ inputMode: 'numeric', pattern: '\\d*', autoCapitalize: 'none', autoCorrect: 'off', spellCheck: false }}
         />
         <TextField 
           type={showPassword ? 'text' : 'password'}
@@ -150,6 +156,7 @@ export default function Login() {
           error={!!errors.password}
           helperText={errors.password?.message}
           required
+          autoComplete="current-password"
           InputProps={{
             endAdornment: (
               <InputAdornment position="end">
@@ -172,6 +179,8 @@ export default function Login() {
             error={!!errors.otp}
             helperText={errors.otp?.message || 'Enter the 6-digit code from your authenticator app'}
             required 
+            autoComplete="one-time-code"
+            inputProps={{ inputMode: 'numeric', pattern: '\\d*' }}
           />
         )}
         {import.meta.env.DEV && (

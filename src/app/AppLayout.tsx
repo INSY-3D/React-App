@@ -70,10 +70,10 @@ export default function AppLayout({ children }: PropsWithChildren) {
   return (
     <Box sx={{ pb: { xs: 9, sm: 0 } }}>
       <AppBar position="sticky" enableColorOnDark>
-        <Toolbar>
+        <Toolbar sx={{ minHeight: 64 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexGrow: 1 }}>
             <img src={npLogo} alt="NexusPay" style={{ height: 28, width: 28, borderRadius: 6 }} />
-            <Typography variant="h6" fontWeight={700}>NexusPay</Typography>
+            <Typography variant="h6" fontWeight={700} sx={{ letterSpacing: 0.2 }}>NexusPay</Typography>
           </Box>
           <Box sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center', gap: 0.5 }}>
             <Tooltip title={currentMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
@@ -94,7 +94,7 @@ export default function AppLayout({ children }: PropsWithChildren) {
           </Box>
         </Toolbar>
       </AppBar>
-      <Container maxWidth="lg" sx={{ py: 3 }}>
+      <Container maxWidth="lg" sx={{ py: { xs: 2, md: 3 } }}>
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}
@@ -117,9 +117,18 @@ export default function AppLayout({ children }: PropsWithChildren) {
           showLabels
           value={currentIndex}
           onChange={(_, newValue) => navigate(navItems[newValue].path)}
+          sx={{ '& .MuiBottomNavigationAction-root': { transition: 'background-color 120ms ease', '&:hover': { backgroundColor: 'rgba(59,130,246,0.08)' } } }}
         >
-          {navItems.map((item) => (
-            <BottomNavigationAction key={item.path} label={item.label} icon={item.icon} />
+          {navItems.map((item, idx) => (
+            <BottomNavigationAction 
+              key={item.path} 
+              label={item.label} 
+              icon={item.icon} 
+              sx={{
+                py: 1,
+                ...(currentIndex === idx ? { fontWeight: 700 } : {}),
+              }}
+            />
           ))}
         </BottomNavigation>
       </Paper>

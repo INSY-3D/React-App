@@ -18,12 +18,13 @@ NexusPay is a modern, secure React application for international payment process
 ### 💳 **International Payments**
 - **Multi-Step Wizard**: Draft → Beneficiary → Review & Pay → Submit
 - **Beneficiary Modes**: Saved, New, or One-time beneficiary
-- **Staff Flow**: Verify queue and a separate table for verified payments ready for SWIFT
+- **Staff Flow**: Pending verification queue, Verified (ready for SWIFT), and Submitted to SWIFT
 - **Draft Management**: Delete Draft payments from the Payments page
 
 ### 👤 **User Experience**
-- **Separate Pages**: `Payments` and `Beneficiaries` now have dedicated routes
-- **Dashboard**: Live payment summary table + analytics
+- **Separate Pages**: `Payments` and `Beneficiaries` routes
+- **Dashboard**: Live payment summary + staff analytics (Verified & Submitted)
+- **Staff Portal**: Three sections with actions (verify, submit to SWIFT)
 - **Profile**: Preferred currency saved to `localStorage` (`np_currency`)
 - **Redirects**: After successful payment submit, navigate to `/payments`
 - **Theme**: Global MUI fixes to keep labels shrunk and handle autofill
@@ -60,7 +61,7 @@ src/
 - Tokens are kept in memory and initialized from `localStorage` on boot for continuity
 - Axios attaches `Authorization: Bearer <accessToken>` automatically
 - 401 handling clears token without forced logout in dev; no auto-redirect
-- API base URL from `VITE_API_BASE_URL` (defaults to `http://localhost:5118`)
+- API base URL from `VITE_API_BASE_URL` (e.g. `http://localhost:5118/api/v1`)
 
 ## 📋 Key Routes
 
@@ -71,7 +72,7 @@ src/
 | `/payments/new` | Payment wizard |
 | `/beneficiaries` | Manage beneficiaries (create/delete/list) |
 | `/profile` | Preferred currency selection |
-| `/staff` | Staff portal: Pending verification + Verified for SWIFT |
+| `/staff` | Staff portal: Pending, Verified, Submitted to SWIFT |
 | `/staff-login` | Staff login |
 
 ## 🧭 Payment Wizard
@@ -97,15 +98,23 @@ cd nexuspay
 ### Env Vars
 Create `.env`:
 ```env
-VITE_API_BASE_URL=http://localhost:5118
+VITE_API_BASE_URL=http://localhost:5118/api/v1
 VITE_MOCK_API=false
 ```
 
+## 🔗 API Endpoints used
+
+- Auth: `/auth/login`, `/auth/register`, `/auth/staff-login`
+- Payments: `/payments` (list/create), `/payments/:id/submit`, `/payments/:id/verify`, `/payments/:id/submit-swift`
+- Staff: `/payments/staff/queue`, `/payments/staff/verified`, `/payments/staff/swift`
+- Beneficiaries: `/beneficiaries` (list/create/delete)
+
 ## 🧪 Staff Portal Flow
 
-- Pending queue from `/api/v1/payments/staff/queue`
-- Verified table from `/api/v1/payments/staff/verified`
-- Actions: Verify → moves to verified table; Submit to SWIFT from verified table
+- Pending queue from `/payments/staff/queue`
+- Verified table from `/payments/staff/verified`
+- Submitted table from `/payments/staff/swift`
+- Actions: Verify → moves to Verified; Submit to SWIFT → moves to Submitted
 
 ## 📚 Compliance
 

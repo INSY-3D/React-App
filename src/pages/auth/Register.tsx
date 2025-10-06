@@ -15,10 +15,11 @@ import api from '../../lib/apiClient'
 import { z } from 'zod'
 import { allowList, validateAllowList } from '../../lib/validation'
 import AuthLayout from '../../app/AuthLayout'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link as RouterLink } from 'react-router-dom'
 import { useAppDispatch } from '../../store'
 import { loginSuccess } from '../../store/authSlice'
 import Box from '@mui/material/Box'
+import Link from '@mui/material/Link'
 
 // Task 2 Compliant: Comprehensive Zod schema for registration
 const registerSchema = z.object({
@@ -110,15 +111,38 @@ export default function Register() {
         password: data.password,
       })
       
-      setSuccess('Registration successful. Redirecting...')
-      
-      // Consider the user authenticated post-registration and mark as first login
-      dispatch(loginSuccess({ 
-        user: res.data?.data?.user,
-        isFirstLogin: true 
-      }))
-      
-      navigate('/dashboard', { replace: true })
+      setSuccess('Registration successful. Signing you in...')
+
+      // Prefer tokens from registration response (backend provides them)
+      const regUser = res.data?.data?.user
+      const regAccessToken: string | undefined = res.data?.data?.accessToken
+      if (regAccessToken) {
+        const { setAuthToken } = await import('../../lib/apiClient')
+        setAuthToken(regAccessToken)
+        dispatch(loginSuccess({ user: regUser, isFirstLogin: true }))
+        navigate('/dashboard', { replace: true })
+        return
+      }
+
+      // Fallback: Auto-login using the same credentials to obtain tokens
+      try {
+        const loginRes = await api.post('/auth/login', {
+          usernameOrEmail: (data.email && data.email.trim().length > 0) ? data.email : data.accountNumber,
+          accountNumber: data.accountNumber,
+          password: data.password,
+        })
+        const userPayload = loginRes.data?.data?.user
+        const accessToken: string | undefined = loginRes.data?.data?.accessToken
+        if (accessToken) {
+          const { setAuthToken } = await import('../../lib/apiClient')
+          setAuthToken(accessToken)
+        }
+        dispatch(loginSuccess({ user: userPayload, isFirstLogin: true }))
+        navigate('/dashboard', { replace: true })
+      } catch (e) {
+        // If fallback login fails, leave success toast and stay on page
+        setError('Registered, but automatic sign-in failed. Please login manually.')
+      }
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Registration failed. Please check your details.')
     } finally {
@@ -246,6 +270,9 @@ export default function Register() {
         >
           Create account
         </Button>
+        <Typography variant="body2" align="center">
+          Already have an account? <Link component={RouterLink} to="/login">Login</Link>
+        </Typography>
       </Stack>
     </AuthLayout>
   )

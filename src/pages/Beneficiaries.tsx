@@ -158,7 +158,7 @@ export default function Beneficiaries() {
       </Paper>
 
       <Paper>
-        <Box p={3} borderBottom="1px solid" borderColor="divider">
+        <Box p={3} borderBottom="1px solid" borderColor="divider" sx={{ position: 'sticky', top: 0, zIndex: 1, bgcolor: 'background.paper' }}>
           <Typography variant="h6" fontWeight={700}>Saved beneficiaries</Typography>
         </Box>
         <Box p={2}>
@@ -167,7 +167,7 @@ export default function Beneficiaries() {
           ) : items.length === 0 ? (
             <Alert severity="info">No beneficiaries yet. Add your first one above.</Alert>
           ) : (
-            <Table>
+            <Table sx={{ '& tbody tr:nth-of-type(odd)': { backgroundColor: 'rgba(148,163,184,0.04)' } }}>
               <TableHead>
                 <TableRow>
                   <TableCell>Full name</TableCell>

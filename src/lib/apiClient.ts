@@ -42,16 +42,29 @@ export const api = axios.create({
   ],
 })
 
+let last401At = 0
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const status = error?.response?.status
     // Only clear token on 401 (unauthenticated). Do not clear on 403 (forbidden).
     if (status === 401 && bearerToken) {
-      if (DEV) console.warn('Auth error received (401). Clearing token.')
-      bearerToken = null
-      try { localStorage.removeItem(TOKEN_STORAGE_KEY) } catch {}
-      ;(window as any).__nexuspay_isAuthed = false
+      // Throttle clearing to avoid race conditions during navigation/first load
+      const now = Date.now()
+      const url: string = (error?.config?.baseURL || API_BASE_URL) + (error?.config?.url || '')
+      const fromOurApi = url.startsWith(API_BASE_URL)
+      if (fromOurApi) {
+        if (now - last401At < 5000) {
+          if (DEV) console.warn('Repeated 401 within 5s. Clearing token.')
+          bearerToken = null
+          try { localStorage.removeItem(TOKEN_STORAGE_KEY) } catch {}
+          ;(window as any).__nexuspay_isAuthed = false
+        } else {
+          if (DEV) console.warn('First 401 detected. Not clearing token (will clear on repeat).')
+          last401At = now
+        }
+      }
     }
     return Promise.reject(error)
   },
