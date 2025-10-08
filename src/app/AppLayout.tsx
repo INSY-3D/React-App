@@ -47,9 +47,24 @@ export default function AppLayout({ children }: PropsWithChildren) {
   const currentMode = mode || 'light'
 
   const handleLogout = async () => {
-    try { await performLogout() } catch {}
+    try { 
+      await performLogout() 
+    } catch (error) {
+      console.error('Logout error:', error)
+    }
+    
+    // Clear Redux state (this also clears localStorage via reducer)
     dispatch(logout())
-    navigate('/login')
+    
+    // Clear token from API client
+    const { setAuthToken } = await import('../lib/apiClient')
+    setAuthToken(null)
+    
+    // Clear global auth flag
+    ;(window as any).__nexuspay_isAuthed = false
+    
+    // Navigate to login
+    navigate('/login', { replace: true })
   }
 
   const toggleMode = () => {

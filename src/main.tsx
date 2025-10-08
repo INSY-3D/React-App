@@ -13,6 +13,7 @@ import './index.css'
 import App from './App.tsx'
 import ErrorBoundary from './components/ErrorBoundary'
 import NotificationsProvider from './components/NotificationsProvider'
+import AuthProvider from './components/AuthProvider'
 import api, { initializeAuthTokenFromStorage } from './lib/apiClient'
 import { setCsrfToken } from './lib/csrf'
 import { logout } from './store/authSlice'
@@ -28,7 +29,9 @@ createRoot(document.getElementById('root')!).render(
           <BrowserRouter>
             <ErrorBoundary>
               <NotificationsProvider>
-                <App />
+                <AuthProvider>
+                  <App />
+                </AuthProvider>
               </NotificationsProvider>
             </ErrorBoundary>
           </BrowserRouter>

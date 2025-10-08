@@ -40,6 +40,13 @@ export const authSlice = createSlice({
       state.isFirstLogin = action.payload.isFirstLogin
       state.failedAttempts = 0
       state.nextAllowedLoginAt = undefined
+      
+      // Persist user data to localStorage
+      try {
+        localStorage.setItem('np_user', JSON.stringify(action.payload.user))
+      } catch (error) {
+        console.error('Failed to persist user data:', error)
+      }
     },
     loginFailed(state) {
       state.isAuthenticated = false
@@ -51,11 +58,33 @@ export const authSlice = createSlice({
       state.isAuthenticated = false
       state.user = undefined
       state.isFirstLogin = undefined
+      
+      // Clear persisted data on logout
+      try {
+        localStorage.removeItem('np_user')
+        localStorage.removeItem('np_access_token')
+      } catch (error) {
+        console.error('Failed to clear persisted data:', error)
+      }
+    },
+    // Hydrate auth state from storage (used by AuthProvider)
+    hydrateAuth(state, action: PayloadAction<{
+      user: {
+        id: string
+        fullName: string
+        email?: string
+        role: string
+        createdAt: string
+      }
+    }>) {
+      state.isAuthenticated = true
+      state.user = action.payload.user
+      state.isFirstLogin = false
     },
   },
 })
 
-export const { loginSuccess, loginFailed, logout } = authSlice.actions
+export const { loginSuccess, loginFailed, logout, hydrateAuth } = authSlice.actions
 export default authSlice.reducer
 
 

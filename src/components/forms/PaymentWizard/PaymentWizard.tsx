@@ -9,11 +9,14 @@ import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
 import Alert from '@mui/material/Alert'
 import CircularProgress from '@mui/material/CircularProgress'
+import IconButton from '@mui/material/IconButton'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward'
 import SendIcon from '@mui/icons-material/Send'
+import CloseIcon from '@mui/icons-material/Close'
 import { useNavigate, useParams } from 'react-router-dom'
+import Tooltip from '@mui/material/Tooltip'
 
 import PaymentDetails from './PaymentDetails'
 import BeneficiaryDetails from './BeneficiaryDetails'
@@ -306,9 +309,30 @@ export default function PaymentWizard() {
   return (
     <Stack spacing={4} sx={{ maxWidth: 800, mx: 'auto' }}>
       <Box>
-        <Typography variant="h4" fontWeight={700} gutterBottom>
-          {isEditing ? 'Edit International Payment' : 'New International Payment'}
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Tooltip title="Back to Payments">
+              <IconButton 
+                onClick={() => navigate('/payments')} 
+                size="small"
+                sx={{ mr: 1 }}
+              >
+                <ArrowBackIcon />
+              </IconButton>
+            </Tooltip>
+            <Typography variant="h4" fontWeight={700}>
+              {isEditing ? 'Edit International Payment' : 'New International Payment'}
+            </Typography>
+          </Box>
+          <Tooltip title="Cancel">
+            <IconButton 
+              onClick={() => navigate('/payments')} 
+              size="small"
+            >
+              <CloseIcon />
+            </IconButton>
+          </Tooltip>
+        </Box>
         <Typography color="text.secondary">
           Send money internationally through the SWIFT network with full compliance monitoring.
         </Typography>

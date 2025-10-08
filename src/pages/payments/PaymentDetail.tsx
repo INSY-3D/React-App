@@ -1,4 +1,3 @@
-// import { useState, useEffect } from 'react' // Available for future use
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import {
@@ -22,6 +21,7 @@ import {
 } from '@mui/icons-material'
 import { useNotifications } from '../../components/NotificationsProvider'
 import api from '../../lib/apiClient'
+import { jsPDF } from 'jspdf'
 
 interface PaymentDetails {
   id: string
@@ -88,6 +88,210 @@ export default function PaymentDetail() {
     }).format(amount)
   }
 
+  const handleDownloadReceipt = () => {
+    if (!payment) return
+
+    const doc = new jsPDF()
+    const statusInfo = statusConfig[payment.status as keyof typeof statusConfig] || statusConfig.draft
+    
+    // Colors
+    const primaryColor = '#1976d2'
+    const secondaryColor = '#757575'
+    const lightGray = '#f5f5f5'
+    
+    // Header - NexusPay Logo and Title
+    doc.setFillColor(primaryColor)
+    doc.rect(0, 0, 210, 40, 'F')
+    
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(24)
+    doc.setFont('helvetica', 'bold')
+    doc.text('NexusPay', 20, 20)
+    
+    doc.setFontSize(12)
+    doc.setFont('helvetica', 'normal')
+    doc.text('International Payment Receipt', 20, 30)
+    
+    // Transaction ID and Status
+    doc.setTextColor(0, 0, 0)
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    doc.text(`Transaction ID: ${payment.id}`, 20, 50)
+    
+    // Status Badge
+    doc.setFillColor(lightGray)
+    doc.roundedRect(20, 55, 50, 8, 2, 2, 'F')
+    doc.text(`Status: ${statusInfo.label}`, 23, 60)
+    
+    // Date
+    doc.text(`Date: ${formatDate(payment.createdAt)}`, 20, 70)
+    
+    // Divider
+    doc.setDrawColor(200, 200, 200)
+    doc.line(20, 75, 190, 75)
+    
+    // Payment Information Section
+    let yPosition = 85
+    doc.setFontSize(14)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Payment Information', 20, yPosition)
+    
+    yPosition += 10
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'normal')
+    
+    // Amount (highlighted)
+    doc.setFillColor(240, 248, 255)
+    doc.roundedRect(20, yPosition - 5, 170, 15, 2, 2, 'F')
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(16)
+    doc.setTextColor(primaryColor)
+    doc.text(`Amount: ${formatCurrency(payment.amount, payment.currency)}`, 25, yPosition + 5)
+    
+    yPosition += 20
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(0, 0, 0)
+    
+    if (payment.reference) {
+      doc.setTextColor(secondaryColor)
+      doc.text('Reference:', 20, yPosition)
+      doc.setTextColor(0, 0, 0)
+      doc.text(payment.reference, 60, yPosition)
+      yPosition += 8
+    }
+    
+    if (payment.purpose) {
+      doc.setTextColor(secondaryColor)
+      doc.text('Purpose:', 20, yPosition)
+      doc.setTextColor(0, 0, 0)
+      const purposeText = doc.splitTextToSize(payment.purpose, 120)
+      doc.text(purposeText, 60, yPosition)
+      yPosition += (purposeText.length * 7) + 3
+    }
+    
+    // Divider
+    yPosition += 5
+    doc.setDrawColor(200, 200, 200)
+    doc.line(20, yPosition, 190, yPosition)
+    
+    // Beneficiary Information Section
+    yPosition += 10
+    doc.setFontSize(14)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Beneficiary Information', 20, yPosition)
+    
+    yPosition += 10
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'normal')
+    
+    if (payment.beneficiaryName) {
+      doc.setTextColor(secondaryColor)
+      doc.text('Beneficiary Name:', 20, yPosition)
+      doc.setTextColor(0, 0, 0)
+      doc.text(payment.beneficiaryName, 70, yPosition)
+      yPosition += 8
+    }
+    
+    if (payment.beneficiaryBank) {
+      doc.setTextColor(secondaryColor)
+      doc.text('Bank:', 20, yPosition)
+      doc.setTextColor(0, 0, 0)
+      doc.text(payment.beneficiaryBank, 70, yPosition)
+      yPosition += 8
+    }
+    
+    if (payment.swiftCode) {
+      doc.setTextColor(secondaryColor)
+      doc.text('SWIFT/BIC Code:', 20, yPosition)
+      doc.setTextColor(0, 0, 0)
+      doc.setFont('courier', 'normal')
+      doc.text(payment.swiftCode, 70, yPosition)
+      doc.setFont('helvetica', 'normal')
+      yPosition += 8
+    }
+    
+    doc.setTextColor(secondaryColor)
+    doc.text('Account Number:', 20, yPosition)
+    doc.setTextColor(0, 0, 0)
+    doc.setFont('courier', 'normal')
+    doc.text(payment.accountNumber, 70, yPosition)
+    doc.setFont('helvetica', 'normal')
+    yPosition += 8
+    
+    if (payment.iban) {
+      doc.setTextColor(secondaryColor)
+      doc.text('IBAN:', 20, yPosition)
+      doc.setTextColor(0, 0, 0)
+      doc.setFont('courier', 'normal')
+      doc.text(payment.iban, 70, yPosition)
+      doc.setFont('helvetica', 'normal')
+      yPosition += 8
+    }
+    
+    // Payment Timeline (if applicable)
+    if (payment.staffVerifiedAt || payment.submittedToSwiftAt || payment.completedAt) {
+      yPosition += 5
+      doc.setDrawColor(200, 200, 200)
+      doc.line(20, yPosition, 190, yPosition)
+      
+      yPosition += 10
+      doc.setFontSize(14)
+      doc.setFont('helvetica', 'bold')
+      doc.text('Payment Timeline', 20, yPosition)
+      
+      yPosition += 10
+      doc.setFontSize(11)
+      doc.setFont('helvetica', 'normal')
+      
+      doc.setTextColor(secondaryColor)
+      doc.text('Created:', 20, yPosition)
+      doc.setTextColor(0, 0, 0)
+      doc.text(formatDate(payment.createdAt), 70, yPosition)
+      yPosition += 8
+      
+      if (payment.staffVerifiedAt) {
+        doc.setTextColor(secondaryColor)
+        doc.text('Verified:', 20, yPosition)
+        doc.setTextColor(0, 0, 0)
+        doc.text(formatDate(payment.staffVerifiedAt), 70, yPosition)
+        yPosition += 8
+      }
+      
+      if (payment.submittedToSwiftAt) {
+        doc.setTextColor(secondaryColor)
+        doc.text('Submitted to SWIFT:', 20, yPosition)
+        doc.setTextColor(0, 0, 0)
+        doc.text(formatDate(payment.submittedToSwiftAt), 70, yPosition)
+        yPosition += 8
+      }
+      
+      if (payment.completedAt) {
+        doc.setTextColor(secondaryColor)
+        doc.text('Completed:', 20, yPosition)
+        doc.setTextColor(0, 0, 0)
+        doc.text(formatDate(payment.completedAt), 70, yPosition)
+        yPosition += 8
+      }
+    }
+    
+    // Footer
+    const pageHeight = doc.internal.pageSize.height
+    doc.setFillColor(lightGray)
+    doc.rect(0, pageHeight - 25, 210, 25, 'F')
+    
+    doc.setTextColor(secondaryColor)
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
+    doc.text('This is a computer-generated receipt and does not require a signature.', 105, pageHeight - 15, { align: 'center' })
+    doc.text(`Generated on ${new Date().toLocaleString('en-ZA')}`, 105, pageHeight - 10, { align: 'center' })
+    doc.text('NexusPay - Secure International Payments', 105, pageHeight - 5, { align: 'center' })
+    
+    // Save the PDF
+    doc.save(`NexusPay-Receipt-${payment.reference || payment.id}.pdf`)
+    notify({ severity: 'success', message: 'Receipt downloaded successfully' })
+  }
+
   const getStatusProgress = (status: string) => {
     const steps = ['draft', 'pending_verification', 'verified', 'submitted_to_swift', 'completed']
     const currentIndex = steps.indexOf(status)
@@ -138,7 +342,7 @@ export default function PaymentDetail() {
         </Box>
         <Stack direction="row" spacing={1}>
           <Tooltip title="Download receipt">
-            <IconButton aria-label="download receipt">
+            <IconButton onClick={handleDownloadReceipt} aria-label="download receipt">
               <DownloadIcon />
             </IconButton>
           </Tooltip>
