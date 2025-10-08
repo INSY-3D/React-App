@@ -53,7 +53,12 @@ export default function StaffLogin() {
   const { nextAllowedLoginAt } = useAppSelector((s) => s.auth)
   const [error, setError] = useState<string | null>(null)
   const [mfaRequired, setMfaRequired] = useState(false)
+  const [hasEmail, setHasEmail] = useState<boolean | null>(null)
+  const [tempEmail, setTempEmail] = useState('')
+  const [otpSent, setOtpSent] = useState(false)
+  const [userId, setUserId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [sendingOtp, setSendingOtp] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const { notify } = useNotifications()
 
@@ -76,6 +81,42 @@ export default function StaffLogin() {
     setValue('password', 'StaffPass123!', { shouldValidate: true, shouldDirty: true })
   }
 
+  const sendOtp = async () => {
+    if (!tempEmail || !userId) {
+      setError('Please enter a valid email address')
+      return
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(tempEmail)) {
+      setError('Please enter a valid email address')
+      return
+    }
+
+    setSendingOtp(true)
+    setError(null)
+
+    try {
+      const res = await api.post('/auth/send-otp', {
+        email: tempEmail,
+        userId: userId
+      })
+
+      if (res.data?.success) {
+        setOtpSent(true)
+        notify({ severity: 'success', message: res.data.message || 'OTP sent to your email' })
+      } else {
+        setError(res.data?.message || 'Failed to send OTP')
+      }
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || 'Failed to send OTP'
+      setError(msg)
+    } finally {
+      setSendingOtp(false)
+    }
+  }
+
   const onSubmit = async (data: StaffLoginFormData) => {
     if (!canAttempt) return
     
@@ -91,19 +132,32 @@ export default function StaffLogin() {
     setError(null)
     
     try {
-      const res = await api.post('/auth/staff-login', {
+      const payload: any = {
         usernameOrEmail: data.usernameOrEmail,
         accountNumber: data.staffId, // Staff ID maps to account number for backend
         password: data.password,
-        otp: mfaRequired ? data.otp : undefined,
-      })
+      }
+
+      // Add OTP if in OTP verification phase
+      if (mfaRequired && data.otp) {
+        payload.otp = data.otp
+        // If user doesn't have registered email, send the temp email for verification
+        if (hasEmail === false && tempEmail) {
+          payload.tempEmail = tempEmail
+        }
+      }
+
+      const res = await api.post('/auth/staff-login', payload)
       
-      if (res.data?.mfa === 'required') {
+      if (res.data?.data?.mfa === 'required') {
         setMfaRequired(true)
-        notify({ 
-          severity: 'info', 
-          message: 'Please enter your authenticator code to complete login' 
-        })
+        setHasEmail(res.data?.data?.hasEmail ?? null)
+        setUserId(res.data?.data?.user?.id || null)
+        
+        // Show appropriate message based on hasEmail status
+        if (res.data?.data?.hasEmail) {
+          notify({ severity: 'info', message: res.data.message || 'OTP sent to your registered email' })
+        }
       } else {
         // Set bearer token for subsequent staff API calls
         const accessToken: string | undefined = res.data?.data?.accessToken ?? res.data?.accessToken
@@ -238,19 +292,45 @@ export default function StaffLogin() {
             <Alert severity="info" sx={{ mb: 2 }}>
               Multi-factor authentication is required for staff access
             </Alert>
-            <TextField 
-              label="Authenticator Code" 
-              {...register('otp')}
-              error={!!errors.otp}
-              helperText={errors.otp?.message || 'Enter the 6-digit code from your authenticator app'}
-              placeholder="123456"
-              inputProps={{ 
-                maxLength: 6,
-                pattern: '[0-9]{6}',
-                autoComplete: 'one-time-code'
-              }}
-              required 
-            />
+            {hasEmail === false && !otpSent && (
+              <Stack direction="row" spacing={1} mb={2}>
+                <TextField 
+                  label="Email for OTP" 
+                  value={tempEmail}
+                  onChange={(e) => setTempEmail(e.target.value)}
+                  error={!!error && !otpSent}
+                  helperText="Enter your email to receive the OTP code"
+                  required 
+                  fullWidth
+                  type="email"
+                  autoComplete="email"
+                />
+                <Button 
+                  variant="contained" 
+                  onClick={sendOtp}
+                  disabled={!tempEmail || sendingOtp}
+                  sx={{ minWidth: '120px', whiteSpace: 'nowrap' }}
+                >
+                  {sendingOtp ? 'Sending...' : 'Send OTP'}
+                </Button>
+              </Stack>
+            )}
+            {(hasEmail === true || otpSent) && (
+              <TextField 
+                label="OTP Code" 
+                {...register('otp')}
+                error={!!errors.otp}
+                helperText={errors.otp?.message || 'Enter the 6-digit code sent to your email'}
+                placeholder="123456"
+                inputProps={{ 
+                  maxLength: 6,
+                  pattern: '[0-9]{6}',
+                  autoComplete: 'one-time-code',
+                  inputMode: 'numeric'
+                }}
+                required 
+              />
+            )}
           </Box>
         )}
         
@@ -272,11 +352,11 @@ export default function StaffLogin() {
           type="submit" 
           variant="contained" 
           size="large"
-          disabled={!canAttempt || loading || !isValid}
+          disabled={!canAttempt || loading || !isValid || (mfaRequired && hasEmail === false && !otpSent)}
           startIcon={<SecurityIcon />}
           sx={{ py: 1.5 }}
         >
-          {mfaRequired ? 'Verify & Access Portal' : 'Access Staff Portal'}
+          {loading ? 'Signing in...' : mfaRequired ? 'Verify OTP & Access Portal' : 'Continue'}
         </Button>
         
         <Divider />

@@ -44,7 +44,12 @@ export default function Login() {
   const { nextAllowedLoginAt } = useAppSelector((s) => s.auth)
   const [error, setError] = useState<string | null>(null)
   const [mfaRequired, setMfaRequired] = useState(false)
+  const [hasEmail, setHasEmail] = useState<boolean | null>(null)
+  const [tempEmail, setTempEmail] = useState('')
+  const [otpSent, setOtpSent] = useState(false)
+  const [userId, setUserId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [sendingOtp, setSendingOtp] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const { notify } = useNotifications()
 
@@ -63,6 +68,42 @@ export default function Login() {
 
   // const watchedValues = watch() // Available for future use
 
+  const sendOtp = async () => {
+    if (!tempEmail || !userId) {
+      setError('Please enter a valid email address')
+      return
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(tempEmail)) {
+      setError('Please enter a valid email address')
+      return
+    }
+
+    setSendingOtp(true)
+    setError(null)
+
+    try {
+      const res = await api.post('/auth/send-otp', {
+        email: tempEmail,
+        userId: userId
+      })
+
+      if (res.data?.success) {
+        setOtpSent(true)
+        notify({ severity: 'success', message: res.data.message || 'OTP sent to your email' })
+      } else {
+        setError(res.data?.message || 'Failed to send OTP')
+      }
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || 'Failed to send OTP'
+      setError(msg)
+    } finally {
+      setSendingOtp(false)
+    }
+  }
+
   const onSubmit = async (data: LoginFormData) => {
     if (!canAttempt) return
     
@@ -76,15 +117,32 @@ export default function Login() {
     setError(null)
     
     try {
-      const res = await api.post('/auth/login', {
+      const payload: any = {
         usernameOrEmail: (data.usernameOrEmail || '').trim(),
         accountNumber: normalizedAccount,
         password: (data.password || '').trim(),
-        otp: mfaRequired ? data.otp : undefined,
-      })
+      }
+
+      // Add OTP if in OTP verification phase
+      if (mfaRequired && data.otp) {
+        payload.otp = data.otp
+        // If user doesn't have registered email, send the temp email for verification
+        if (hasEmail === false && tempEmail) {
+          payload.tempEmail = tempEmail
+        }
+      }
+
+      const res = await api.post('/auth/login', payload)
       
       if (res.data?.data?.mfa === 'required') {
         setMfaRequired(true)
+        setHasEmail(res.data?.data?.hasEmail ?? null)
+        setUserId(res.data?.data?.user?.id || null)
+        
+        // Show appropriate message based on hasEmail status
+        if (res.data?.data?.hasEmail) {
+          notify({ severity: 'info', message: res.data.message || 'OTP sent to your registered email' })
+        }
       } else {
         // Determine if this is a first login (account created today)
         const userPayload = res.data?.data?.user
@@ -172,15 +230,38 @@ export default function Login() {
             ),
           }}
         />
-        {mfaRequired && (
+        {mfaRequired && hasEmail === false && !otpSent && (
+          <Stack direction="row" spacing={1}>
+            <TextField 
+              label="Email for OTP" 
+              value={tempEmail}
+              onChange={(e) => setTempEmail(e.target.value)}
+              error={!!error && !otpSent}
+              helperText="Enter your email to receive the OTP code"
+              required 
+              fullWidth
+              type="email"
+              autoComplete="email"
+            />
+            <Button 
+              variant="contained" 
+              onClick={sendOtp}
+              disabled={!tempEmail || sendingOtp}
+              sx={{ minWidth: '120px', whiteSpace: 'nowrap' }}
+            >
+              {sendingOtp ? 'Sending...' : 'Send OTP'}
+            </Button>
+          </Stack>
+        )}
+        {mfaRequired && (hasEmail === true || otpSent) && (
           <TextField 
             label="OTP" 
             {...register('otp')}
             error={!!errors.otp}
-            helperText={errors.otp?.message || 'Enter the 6-digit code from your authenticator app'}
+            helperText={errors.otp?.message || 'Enter the 6-digit code sent to your email'}
             required 
             autoComplete="one-time-code"
-            inputProps={{ inputMode: 'numeric', pattern: '\\d*' }}
+            inputProps={{ inputMode: 'numeric', pattern: '\\d*', maxLength: 6 }}
           />
         )}
         {import.meta.env.DEV && (
@@ -198,9 +279,9 @@ export default function Login() {
         <Button 
           type="submit" 
           variant="contained" 
-          disabled={!canAttempt || loading || !isValid}
+          disabled={!canAttempt || loading || !isValid || (mfaRequired && hasEmail === false && !otpSent)}
         >
-          {mfaRequired ? 'Verify & Login' : 'Login'}
+          {loading ? 'Signing in...' : mfaRequired ? 'Verify OTP & Login' : 'Continue'}
         </Button>
         <Typography variant="body2" align="center">
           New to NexusPay? <Link component={RouterLink} to="/register">Create an account</Link>
