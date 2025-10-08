@@ -10,6 +10,7 @@ declare module '@mui/material/styles' {
 }
 
 export const theme = extendTheme({
+// @ts-expect-error IDE
   cssVariables: true,
   // Global design tokens
   shadows: [
