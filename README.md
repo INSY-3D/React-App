@@ -225,13 +225,13 @@ nexuspay/
 ### **Prerequisites**
 - Node.js 18+ (LTS recommended)
 - npm 8+ or yarn 1.22+
-- NexusPay API running (see `../Api/README.md`)
+- **NexusPay API running** (separate repository - must be started first)
 
 ### **Installation**
 
 1. **Navigate to the project directory**
    ```bash
-   cd nexuspay
+   cd REACT-APP
    ```
 
 2. **Install dependencies**
@@ -240,26 +240,42 @@ nexuspay/
    ```
 
 3. **Create environment configuration**
-   ```bash
-   # Create .env file
-   cp .env.example .env
-   ```
-
-4. **Configure environment variables**
-   ```env
-   # API Configuration
-   VITE_API_BASE_URL=http://localhost:5118/api/v1
    
-   # Feature Flags
+   Create a `.env` file in the `REACT-APP` directory:
+   ```env
+   # HTTPS API (if API has SSL certificates)
+   VITE_API_BASE_URL=https://localhost:5118/api/v1
    VITE_MOCK_API=false
    ```
+   
+   **OR** use HTTP if API doesn't have certificates:
+   ```env
+   VITE_API_BASE_URL=http://localhost:5118/api/v1
+   VITE_MOCK_API=false
+   ```
+   
+   **See `ENV_SETUP.md` for detailed instructions!**
 
-5. **Start development server**
+5. **Start the API server** (in separate terminal)
+   ```bash
+   # Navigate to API directory
+   cd node-API
+   
+   # Start API server
+   npm run dev
+   ```
+   
+   **Important:** 
+   - The React app requires the NexusPay API to be running first
+   - If API uses HTTPS, visit `https://localhost:5118/health` and accept the certificate
+   - See `HTTPS_SETUP.md` for detailed connection guide
+
+6. **Start React development server**
    ```bash
    npm run dev
    ```
 
-6. **Open in browser**
+7. **Open in browser**
    ```
    http://localhost:5173
    ```
@@ -550,11 +566,16 @@ VITE_MOCK_API=false
 
 ## 📚 Additional Documentation
 
-- **API Documentation** - See `../Api/README.md` for backend details
-- **Compliance Analysis** - See `../TASK_2_COMPLIANCE_ANALYSIS.md`
-- **Requirements Gap** - See `../REQUIREMENTS_GAP_ANALYSIS.md`
-- **SMTP Setup** - See `../Api/SMTP_SETUP.md` for email configuration
-- **Navigation Fixes** - See `./NAVIGATION_FIX_SUMMARY.md`
+### Frontend Documentation
+- This README - React app setup and features
+
+### Backend Documentation (Separate Repository)
+- **API README** - Backend setup and configuration
+- **SSL/TLS Setup** - HTTPS certificate generation
+- **SMTP Setup** - Email/OTP configuration
+- **Compliance Analysis** - Security compliance report
+
+**Note:** The NexusPay API is in a separate repository and must be running for this frontend to work.
 
 ---
 
@@ -590,7 +611,12 @@ For help and support:
 
 ## 🔄 Changelog
 
-### **v1.3.0** (Latest)
+### **v1.3.1** (Latest)
+- ✅ **Updated README** - Clarified API dependency and setup
+- ✅ **HTTPS support** - Updated to work with API's SSL/TLS certificates
+- ✅ **Documentation improvements** - Clearer installation instructions
+
+### **v1.3.0**
 - ✅ Added PDF receipt download with professional branding
 - ✅ Implemented email-based OTP authentication for customers
 - ✅ Added staff OTP bypass for streamlined access

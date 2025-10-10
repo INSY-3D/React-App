@@ -2,7 +2,7 @@ import Paper from '@mui/material/Paper'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 import Box from '@mui/material/Box'
-import Divider from '@mui/material/Divider'
+// import Divider from '@mui/material/Divider' // Unused
 import Table from '@mui/material/Table'
 import TableBody from '@mui/material/TableBody'
 import TableCell from '@mui/material/TableCell'
@@ -146,12 +146,24 @@ export default function Dashboard() {
     enabled: isAuthenticated && isStaff,
   })
 
+  // Unified payment type for staff dashboard
+  type StaffPayment = {
+    id: string
+    amount: number
+    currency: string
+    beneficiaryName?: string
+    swiftCode?: string
+    reference?: string
+    staffVerifiedAt?: string
+    submittedToSwiftAt?: string
+  }
+
   // Staff data (verified payments)
   const { data: verifiedPayments, isLoading: isVerifiedLoading, error: verifiedError, refetch: refetchVerified } = useQuery({
     queryKey: ['staff-verified-dashboard'],
     queryFn: async () => {
       const res = await api.get('/payments/staff/verified', { params: { page: 1, limit: 50 } })
-      return res.data.data as { payments: Array<{ id: string; amount: number; currency: string; beneficiaryName?: string; swiftCode?: string; reference?: string; staffVerifiedAt?: string }> }
+      return res.data.data as { payments: StaffPayment[] }
     },
     enabled: isAuthenticated && isStaff,
   })
@@ -161,7 +173,7 @@ export default function Dashboard() {
     queryKey: ['staff-swift-dashboard'],
     queryFn: async () => {
       const res = await api.get('/payments/staff/swift', { params: { page: 1, limit: 50 } })
-      return res.data.data as { payments: Array<{ id: string; amount: number; currency: string; beneficiaryName?: string; swiftCode?: string; reference?: string; submittedToSwiftAt?: string }> }
+      return res.data.data as { payments: StaffPayment[] }
     },
     enabled: isAuthenticated && isStaff,
   })
@@ -431,7 +443,6 @@ export default function Dashboard() {
                         })
                         .slice(0, 10)
                         .map((p) => {
-                          const isVerified = p.staffVerifiedAt && !p.submittedToSwiftAt
                           const isSubmitted = p.submittedToSwiftAt
                           const status = isSubmitted ? 'submitted_to_swift' : 'verified'
                           const date = p.submittedToSwiftAt || p.staffVerifiedAt

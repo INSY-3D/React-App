@@ -4,7 +4,7 @@ import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import MenuItem from '@mui/material/MenuItem'
 import Alert from '@mui/material/Alert'
-import InputAdornment from '@mui/material/InputAdornment'
+// import InputAdornment from '@mui/material/InputAdornment' // Unused
 import { 
   validateAmount, 
   validateAllowList, 

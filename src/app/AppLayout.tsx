@@ -80,7 +80,7 @@ export default function AppLayout({ children }: PropsWithChildren) {
     out: { opacity: 0, y: -8, filter: 'blur(2px)' },
   }
 
-  const pageTransition = { type: 'spring', stiffness: 260, damping: 24, mass: 0.8 }
+  const pageTransition = { type: 'spring' as const, stiffness: 260, damping: 24, mass: 0.8 }
 
   return (
     <Box sx={{ pb: { xs: 9, sm: 0 } }}>

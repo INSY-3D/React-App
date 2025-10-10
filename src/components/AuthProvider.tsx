@@ -39,9 +39,6 @@ export default function AuthProvider({ children }: AuthProviderProps) {
         const storedToken = localStorage.getItem('np_access_token')
 
         if (storedUser && storedToken) {
-          // Parse stored user data
-          const user = JSON.parse(storedUser)
-          
           // Verify token is still valid by calling /auth/me
           try {
             const response = await api.get('/auth/me')
