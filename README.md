@@ -83,7 +83,7 @@ Edit the `.env` file:
 VITE_API_BASE_URL=https://localhost:5118/api/v1
 
 # For HTTP API (if not using SSL)
-# VITE_API_BASE_URL=http://localhost:5118/api/v1
+VITE_API_BASE_URL=http://localhost:5118/api/v1
 
 VITE_MOCK_API=false
 ```
