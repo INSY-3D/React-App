@@ -56,7 +56,7 @@ export default function PaymentWizard() {
   const [paymentId, setPaymentId] = useState<string | null>(id || null) // Track created payment ID or existing ID
   const [isCreatingDraft, setIsCreatingDraft] = useState(false)
   const [isUpdatingBeneficiary, setIsUpdatingBeneficiary] = useState(false)
-  const [isEditing, setIsEditing] = useState(!!id) // Check if we're editing an existing payment
+  const [isEditing] = useState(!!id) // Check if we're editing an existing payment
   const { notify } = useNotifications()
 
   // Load existing payment data when editing

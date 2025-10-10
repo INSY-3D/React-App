@@ -126,10 +126,11 @@ export default function Login() {
       // Add OTP if in OTP verification phase
       if (mfaRequired && data.otp) {
         payload.otp = data.otp
-        // If user doesn't have registered email, send the temp email for verification
-        if (hasEmail === false && tempEmail) {
-          payload.tempEmail = tempEmail
-        }
+      }
+      
+      // If user entered an email for OTP (no registered email), include it
+      if (tempEmail) {
+        payload.email = tempEmail
       }
 
       const res = await api.post('/auth/login', payload)
@@ -152,7 +153,7 @@ export default function Login() {
 
         ;(window as any).__nexuspay_isAuthed = true
         const accessToken: string | undefined = res.data?.data?.accessToken
-        const refreshToken: string | undefined = res.data?.data?.refreshToken
+        // const refreshToken: string | undefined = res.data?.data?.refreshToken // Stored in AuthSlice
         if (accessToken) {
           const { setAuthToken } = await import('../../lib/apiClient')
           setAuthToken(accessToken)

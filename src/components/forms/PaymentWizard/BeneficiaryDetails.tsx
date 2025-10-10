@@ -56,8 +56,8 @@ export default function BeneficiaryDetails({ data, onChange, onValidation }: Ben
     queryKey: ['beneficiaries'],
     queryFn: async () => {
       const res = await api.get('/beneficiaries')
-      return (res.data.data as Array<{ id: string; fullName: string; bankName: string; accountNumberMasked: string; swiftCode: string }>).
-        map(b => ({ id: b.id, fullName: b.fullName, bankName: b.bankName, accountNumber: b.accountNumberMasked, swiftCode: b.swiftCode }))
+      return (res.data.data as Array<{ id: string; fullName: string; bankName: string; accountNumber: string; swiftCode: string }>).
+        map(b => ({ id: b.id, fullName: b.fullName, bankName: b.bankName, accountNumberMasked: b.accountNumber, swiftCode: b.swiftCode }))
     }
   })
 
@@ -198,7 +198,7 @@ export default function BeneficiaryDetails({ data, onChange, onValidation }: Ben
         bankName: selected.bankName,
         swiftCode: selected.swiftCode,
         // Use masked account number for display, but user needs to enter real one
-        accountNumber: selected.accountNumber, // This is the masked version
+        accountNumber: selected.accountNumberMasked, // This is the masked version
         // Clear IBAN since it's not stored in saved beneficiaries
         iban: '',
       }
