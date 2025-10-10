@@ -1,0 +1,57 @@
+﻿name: CI Workflow
+
+
+# ------------------------------------------------------------------------------
+
+
+on:
+  push:
+  pull_request:
+    types: [ opened, synchronize, reopened ]
+
+
+# ------------------------------------------------------------------------------
+
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+
+# ------------------------------------------------------------------------------
+
+
+jobs:
+
+  # Job
+  validate:
+    name: Validate Conventions
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+
+      # Step
+      - name: Branches
+        shell: bash
+        run: |
+          BRANCH_NAME="${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}"
+
+          echo "🔍 Validating branch: $BRANCH_NAME"
+          
+          if [[ "$BRANCH_NAME" =~ ^(main|staging|topic\/[a-z0-9-]+|debug\/[a-z0-9-]+|tests\/[a-z0-9-]+|rollback\/[a-z0-9-]+)$ ]]; then
+            echo "✅ Follows accepted conventions."
+            exit 0
+          else
+            echo "❌ Invalid branch name: '$BRANCH_NAME'                  "
+            echo "Allowed conventions:                                    "
+            echo "  - main                                                "
+            echo "  - staging                                             "
+            echo "  - rollback/<lowercase-name> (letters, numbers, dashes)"
+            echo "  - topic/<lowercase-name> (letters, numbers, dashes)   "
+            echo "  - debug/<lowercase-name> (letters, numbers, dashes)   "
+            echo "  - tests/<lowercase-name> (letters, numbers, dashes)   "
+            exit 1
+          fi
+
+
+# ------------------------------------------------------------------------------
