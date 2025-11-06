@@ -79,9 +79,16 @@ cp .env.example .env
 Edit the `.env` file:
 
 ```env
+# For HTTPS API (recommended for development)
+VITE_API_BASE_URL=https://localhost:5118/api/v1
+
+# For HTTP API (if not using SSL)
 VITE_API_BASE_URL=http://localhost:5118/api/v1
+
 VITE_MOCK_API=false
 ```
+
+**📌 Note:** If using HTTPS (recommended), you'll need to accept the self-signed certificate in your browser when first accessing the API.
 
 ### 🪜 Step 4 — Run Development Server
 
