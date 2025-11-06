@@ -15,6 +15,7 @@ export default function AdminDashboard() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState({ fullName: '', staffId: '', email: '', password: '' })
+  const passwordPolicy = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{12,}$/
 
   const stats = useMemo(() => {
     const total = staff.length
@@ -49,7 +50,15 @@ export default function AdminDashboard() {
       if (editingId) {
         await api.patch(`/admin/staff/${editingId}`, { fullName: form.fullName || undefined, email: form.email || undefined, password: form.password || undefined })
       } else {
-        await api.post('/admin/staff', { fullName: form.fullName, staffId: form.staffId, email: form.email, password: form.password || undefined })
+        if (!form.fullName.trim() || !form.staffId.trim() || !form.email.trim() || !form.password.trim()) {
+          alert('Full Name, Staff ID, Email and Password are required')
+          return
+        }
+        if (!passwordPolicy.test(form.password)) {
+          alert('Password must be at least 12 characters and include uppercase, lowercase, number, and special character')
+          return
+        }
+        await api.post('/admin/staff', { fullName: form.fullName.trim(), staffId: form.staffId.trim(), email: form.email.trim(), password: form.password })
       }
       setDialogOpen(false)
       await fetchStaff()
@@ -131,7 +140,7 @@ export default function AdminDashboard() {
             {!editingId && <TextField label="Full Name" value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} required />}
             {!editingId && <TextField label="Staff ID" value={form.staffId} onChange={(e) => setForm({ ...form, staffId: e.target.value })} required />}
             <TextField label="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-            <TextField type="password" label="Password (optional)" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+            <TextField type="password" label="Password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required helperText="12+ chars with uppercase, lowercase, number, and special character" />
           </Stack>
         </DialogContent>
         <DialogActions>
