@@ -4,12 +4,14 @@ import Home from './pages/Home'
 import Cards from './pages/Cards'
 import Payments from './pages/Payments'
 import Profile from './pages/Profile'
-import { ProtectedRoute, PublicOnlyRoute } from './routes/guards'
+import { ProtectedRoute, PublicOnlyRoute, AdminRoute, StaffOnlyRoute } from './routes/guards'
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
 import StaffLogin from './pages/auth/StaffLogin'
+import AdminLogin from './pages/auth/AdminLogin'
 import Dashboard from './pages/dashboard/Dashboard'
 import StaffPortal from './pages/staff/StaffPortal'
+import AdminDashboard from './pages/admin/AdminDashboard'
 import NewPayment from './pages/payments/NewPayment'
 import PaymentDetail from './pages/payments/PaymentDetail'
 import { Error404, SessionTimeout } from './pages/errors/Errors'
@@ -22,6 +24,7 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/staff-login" element={<StaffLogin />} />
+        <Route path="/admin-login" element={<AdminLogin />} />
       </Route>
 
       <Route element={<ProtectedRoute />}>
@@ -35,7 +38,12 @@ export default function App() {
           <Route path="/payments/:id/edit" element={<NewPayment />} />
           <Route path="/beneficiaries" element={<Beneficiaries />} />
           <Route path="/profile" element={<Profile />} />
-          <Route path="/staff" element={<StaffPortal />} />
+          <Route element={<StaffOnlyRoute />}>
+            <Route path="/staff" element={<StaffPortal />} />
+          </Route>
+          <Route element={<AdminRoute />}>
+            <Route path="/admin" element={<AdminDashboard />} />
+          </Route>
         </Route>
       </Route>
 
