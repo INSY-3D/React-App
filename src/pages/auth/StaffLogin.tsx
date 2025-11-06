@@ -201,6 +201,13 @@ export default function StaffLogin() {
 
   return (
     <AuthLayout title="Staff Portal">
+      <Box position="relative">
+        <Box position="absolute" top={8} right={8}>
+          <Button variant="text" size="small" onClick={() => navigate('/admin-login')}>
+            Admin Login
+          </Button>
+        </Box>
+      </Box>
       <Box textAlign="center" mb={3}>
         <SecurityIcon sx={{ fontSize: 60, color: 'primary.main', mb: 2 }} />
         <Typography variant="h4" component="h1" fontWeight={700} gutterBottom>
@@ -369,6 +376,15 @@ export default function StaffLogin() {
               size="small"
             >
               Customer Login
+            </Button>
+          </Typography>
+          <Typography variant="body2" color="text.secondary" mt={1}>
+            Admin? <Button 
+              variant="text" 
+              onClick={() => navigate('/admin-login')}
+              size="small"
+            >
+              Admin Login
             </Button>
           </Typography>
         </Box>
