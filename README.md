@@ -76,7 +76,7 @@ npm install
 cp .env.example .env
 ```
 
-Edit the `.env` file:
+Edit the `.env` file (HTTPS recommended; matches backend SSL setup in `node-API/SETUP_SSL_DEV.md`):
 
 ```env
 # For HTTPS API (recommended for development)
@@ -88,7 +88,7 @@ VITE_API_BASE_URL=http://localhost:5118/api/v1
 VITE_MOCK_API=false
 ```
 
-**📌 Note:** If using HTTPS (recommended), you'll need to accept the self-signed certificate in your browser when first accessing the API.
+**📌 Note:** If using HTTPS (recommended), ensure you generated and trusted the dev SSL certs in the backend. Otherwise you will see `ERR_CERT_AUTHORITY_INVALID` until the CA is trusted.
 
 ### 🪜 Step 4 — Run Development Server
 
@@ -118,10 +118,12 @@ npm run preview
 | `/login`         | Customer | Login with credentials        |
 | `/register`      | Customer | Register new user             |
 | `/staff-login`   | Staff    | Staff login (no OTP)          |
+| `/admin-login`   | Admin    | Admin login (no OTP)          |
 | `/dashboard`     | All      | Role-based dashboards         |
 | `/payments`      | Customer | Payment history               |
 | `/payments/new`  | Customer | New payment wizard            |
 | `/staff`         | Staff    | Pending/verified/SWIFT queues |
+| `/admin`         | Admin    | Staff management dashboard    |
 | `/beneficiaries` | Customer | Manage saved recipients       |
 | `/profile`       | All      | Update personal info          |
 
@@ -194,9 +196,9 @@ nexuspay/
 ## 🧪 Test Users (from backend seed)
 
 ```
-Customer: customer@nexuspay.dev / Customer123!
-Staff:    staff@nexuspay.dev / Staff123!
-Admin:    admin@nexuspay.dev / Admin123!
+Customer: test@nexuspay.dev   / TestPass123!
+Staff:    staff@nexuspay.dev  / StaffPass123!
+Admin:    admin@nexuspay.dev  / AdminPass123!
 ```
 
 Use these credentials to log in and explore the full app flow.
