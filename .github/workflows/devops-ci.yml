@@ -153,7 +153,19 @@ jobs:
       - name: Validate Dependencies
         shell: bash
         run: |
-          npm audit --audit-level=moderate || true
+          AUDIT_JSON=$(npm audit --json || true)
+          
+          LEVEL_H=$(echo "$AUDIT_JSON" | jq '.metadata.vulnerabilities.high')
+          LEVEL_M=$(echo "$AUDIT_JSON" | jq '.metadata.vulnerabilities.moderate')
+          LEVEL_L=$(echo "$AUDIT_JSON" | jq '.metadata.vulnerabilities.low')
+          LEVEL_I=$(echo "$AUDIT_JSON" | jq '.metadata.vulnerabilities.info')
+
+          echo "Vulnerabilities (Audit):"
+          echo "------------------------"
+          echo "High: $LEVEL_H"
+          echo "Moderate: $LEVEL_M"
+          echo "Low: $LEVEL_L"
+          echo "Info: $LEVEL_I"
 
 
 # ------------------------------------------------------------------------------
