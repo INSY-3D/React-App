@@ -1,5 +1,16 @@
 # 💻 NexusPay Frontend — Secure International Payment Platform
 
+# 👥 Members
+
+
+| Name               | Student Number                       |
+| ------------------- | ------------------------------------ |
+| **Musa Ntuli**      | ST1029336                            |
+| **Dean Gibson**     | ST10326084                           |
+| **Fortune Mabona**  | ST10187287                           |
+| **Matthew Pieterse**| ST10257002                           |
+
+
 ### 📘 About This Project
 
 NexusPay Frontend is a **React + TypeScript web application** that connects to the secure NexusPay API to simulate international payment processing. It demonstrates strong **security**, **usability**, and **Task 2 compliance** by providing a realistic front-end banking experience.

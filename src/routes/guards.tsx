@@ -26,8 +26,9 @@ export function StaffOnlyRoute() {
   const isAuthed = useAppSelector((s) => s.auth.isAuthenticated)
   const role = useAppSelector((s) => s.auth.user?.role)
   if (!isAuthed) return <Navigate to="/staff-login" replace />
-  // Allow staff, deny admin here to avoid showing staff portal to admin
-  return role === 'staff' ? <Outlet /> : <Navigate to="/admin" replace />
+  if (role === 'staff') return <Outlet />
+  if (role === 'admin') return <Navigate to="/admin" replace />
+  return <Navigate to="/dashboard" replace />
 }
 
 

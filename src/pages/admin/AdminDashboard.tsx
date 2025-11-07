@@ -42,14 +42,37 @@ export default function AdminDashboard() {
 
   useEffect(() => { fetchStaff() }, [])
 
-  const openCreate = () => { setEditingId(null); setForm({ fullName: '', staffId: '', email: '', password: '' }); setDialogOpen(true) }
-  const openEdit = (row: any) => { setEditingId(row.id); setForm({ fullName: '', staffId: '', email: '', password: '' }); setDialogOpen(true) }
+  const openCreate = () => { 
+    setEditingId(null); 
+    setForm({ fullName: '', staffId: '', email: '', password: '' }); 
+    setDialogOpen(true) 
+  }
+  
+  const openEdit = (row: Staff) => { 
+    setEditingId(row.id); 
+    setForm({ 
+      fullName: row.fullName || '', 
+      staffId: row.staffId || '', 
+      email: row.email || '', 
+      password: '' 
+    }); 
+    setDialogOpen(true) 
+  }
 
   const submitDialog = async () => {
     try {
       if (editingId) {
-        await api.patch(`/admin/staff/${editingId}`, { fullName: form.fullName || undefined, email: form.email || undefined, password: form.password || undefined })
+        // Edit mode: password is optional, validate only if provided
+        if (form.password.trim() && !passwordPolicy.test(form.password)) {
+          alert('Password must be at least 12 characters and include uppercase, lowercase, number, and special character')
+          return
+        }
+        await api.patch(`/admin/staff/${editingId}`, { 
+          email: form.email.trim() || undefined, 
+          password: form.password.trim() || undefined 
+        })
       } else {
+        // Create mode: all fields required
         if (!form.fullName.trim() || !form.staffId.trim() || !form.email.trim() || !form.password.trim()) {
           alert('Full Name, Staff ID, Email and Password are required')
           return
@@ -58,7 +81,12 @@ export default function AdminDashboard() {
           alert('Password must be at least 12 characters and include uppercase, lowercase, number, and special character')
           return
         }
-        await api.post('/admin/staff', { fullName: form.fullName.trim(), staffId: form.staffId.trim(), email: form.email.trim(), password: form.password })
+        await api.post('/admin/staff', { 
+          fullName: form.fullName.trim(), 
+          staffId: form.staffId.trim(), 
+          email: form.email.trim(), 
+          password: form.password 
+        })
       }
       setDialogOpen(false)
       await fetchStaff()
@@ -139,8 +167,15 @@ export default function AdminDashboard() {
           <Stack spacing={2} mt={1}>
             {!editingId && <TextField label="Full Name" value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} required />}
             {!editingId && <TextField label="Staff ID" value={form.staffId} onChange={(e) => setForm({ ...form, staffId: e.target.value })} required />}
-            <TextField label="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-            <TextField type="password" label="Password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required helperText="12+ chars with uppercase, lowercase, number, and special character" />
+            <TextField label="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required={!editingId} />
+            <TextField 
+              type="password" 
+              label="Password" 
+              value={form.password} 
+              onChange={(e) => setForm({ ...form, password: e.target.value })} 
+              required={!editingId} 
+              helperText={editingId ? "Leave blank to keep current password. Otherwise: 12+ chars with uppercase, lowercase, number, and special character" : "12+ chars with uppercase, lowercase, number, and special character"} 
+            />
           </Stack>
         </DialogContent>
         <DialogActions>
