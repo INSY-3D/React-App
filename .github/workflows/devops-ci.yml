@@ -57,7 +57,7 @@ jobs:
 
   # Job
   security:
-    name: Dependency Scanning
+    name: Dependency Scanner
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     continue-on-error: true
