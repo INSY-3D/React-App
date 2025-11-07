@@ -59,6 +59,7 @@ jobs:
   security:
     name: Dependency Scanning
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
     continue-on-error: true
     timeout-minutes: 5
     permissions:
