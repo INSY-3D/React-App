@@ -159,8 +159,10 @@ jobs:
           LEVEL_M=$(echo "$AUDIT_JSON" | jq '.metadata.vulnerabilities.moderate')
           LEVEL_L=$(echo "$AUDIT_JSON" | jq '.metadata.vulnerabilities.low')
           LEVEL_I=$(echo "$AUDIT_JSON" | jq '.metadata.vulnerabilities.info')
+          
+          echo "### Vulnerabilities (Audit)" >> $GITHUB_STEP_SUMMARY
 
-          TABLE="| High | Moderate | Low | Info |\n|---|---|---|---|\n| $LEVEL_H | $LEVEL_M | $LEVEL_L | $LEVEL_I |"
+          TABLE="| High | Moderate | Low | Info |\n|:-:|:-:|:-:|:-:|\n| $LEVEL_H | $LEVEL_M | $LEVEL_L | $LEVEL_I |"
           
           echo -e "$TABLE" >> $GITHUB_STEP_SUMMARY
 
