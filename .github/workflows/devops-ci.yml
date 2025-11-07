@@ -77,7 +77,7 @@ jobs:
       - name: VCS Scan
         uses: actions/dependency-review-action@v4
         with:
-          fail-on-severity: high
+          fail-on-severity: high # test triggers
   
 
   # Job
