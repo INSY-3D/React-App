@@ -77,7 +77,7 @@ jobs:
       - name: VCS Scan
         uses: actions/dependency-review-action@v4
         with:
-          fail-on-severity: high # test triggers
+          fail-on-severity: high
   
 
   # Job
@@ -118,6 +118,41 @@ jobs:
           else
             echo "✅ Build completed successfully"
           fi
+  
+
+  # Job
+  node-audit:
+    name: Audit
+    runs-on: ubuntu-latest
+    needs: [ node-build ]
+    continue-on-error: true
+    timeout-minutes: 5
+    steps:
+
+      # Step
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      # Step
+      - name: Setup the NodeJs Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # Step
+      - name: Install Dependencies
+        shell: bash
+        run: |
+          npm ci --prefer-offline --no-audit --no-fund
+
+      # Step
+      - name: Validate Dependencies
+        shell: bash
+        run: |
+          npm audit --audit-level=moderate || true
 
 
 # ------------------------------------------------------------------------------
