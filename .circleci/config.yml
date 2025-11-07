@@ -1,0 +1,28 @@
+version: 2.1
+
+
+orbs:
+  sonarcloud: sonarsource/sonarcloud@2.0.0
+
+
+jobs:
+  build:
+    docker:
+      - image: cimg/node:20.5
+    working_directory: ~/project
+    steps:
+      - run:
+          name: Checkout code via HTTPS
+          command: |
+            git clone https://$GH_TOKEN@github.com/INSY-3D/React-App .
+      - run:
+          name: Install Dependencies
+          command: npm install
+      - sonarcloud/scan
+
+
+workflows:
+  main:
+    jobs:
+      - build:
+          context: SonarCloud
