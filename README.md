@@ -1,5 +1,13 @@
 # 💻 NexusPay Frontend — Secure International Payment Platform
 
+# Members
+
+* Dean ST10326084
+* Matthew
+* Musa ST10293362
+* Fortune 
+
+
 ### 📘 About This Project
 
 NexusPay Frontend is a **React + TypeScript web application** that connects to the secure NexusPay API to simulate international payment processing. It demonstrates strong **security**, **usability**, and **Task 2 compliance** by providing a realistic front-end banking experience.
